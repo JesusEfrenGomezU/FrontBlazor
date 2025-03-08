@@ -16,6 +16,11 @@
     <!-- Esto reduce la necesidad de escribir directivas using para tipos comunes como System.* -->
     <!-- Por ejemplo, podemos usar List<> sin tener que escribir using System.Collections.Generic; -->
     <ImplicitUsings>enable</ImplicitUsings>
+    
+    <!-- Configuración adicional para que se genere el runtimeconfig.json -->
+    <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
+    <OutputType>Exe</OutputType>
+
   </PropertyGroup>
 
   <ItemGroup>
