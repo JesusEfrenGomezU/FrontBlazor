@@ -115,3 +115,6 @@
         overflow-y: auto;  /* Añade barra de desplazamiento vertical cuando sea necesario */
     }
 }
+.oi-box::before {
+    content: "\e800";  /* Código del ícono del cuadro/caja */
+}
