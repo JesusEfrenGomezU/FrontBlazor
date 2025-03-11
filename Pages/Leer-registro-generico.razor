@@ -1,0 +1,78 @@
+@page "/seleccionar-tabla"
+@inject FrontBlazor.Services.ServicioEntidad servicioEntidad
+
+<h1>Explorador de Tablas</h1>
+
+<div class="mb-3">
+    <label for="tablaSeleccion" class="form-label">Selecciona una tabla:</label>
+    <select id="tablaSeleccion" class="form-select" @onchange="OnTablaChanged">
+        <option value="">-- Selecciona --</option>
+        @foreach (var tabla in tablasDisponibles)
+        {
+            <option value="@tabla">@tabla</option>
+        }
+    </select>
+</div>
+
+@if (!string.IsNullOrEmpty(tablaSeleccionada))
+{
+    <h2>Contenido de la tabla: @tablaSeleccionada</h2>
+    
+    @if (datosTabla == null)
+    {
+        <p>Cargando datos...</p>
+    }
+    else if (datosTabla.Count == 0)
+    {
+        <p>No se encontraron datos en esta tabla.</p>
+    }
+    else
+    {
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    @foreach (var columna in datosTabla[0].Keys)
+                    {
+                        <th>@columna</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var fila in datosTabla)
+                {
+                    <tr>
+                        @foreach (var valor in fila.Values)
+                        {
+                            <td>@valor</td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+@code {
+    // Lista de nombres de tablas disponibles; se puede obtener dinámicamente si la API lo soporta.
+    private List<string> tablasDisponibles = new List<string> { "indicador", "actor", "resultadoindicador", "variable", "fuentesporindicador", "represenvisualporindicador", "responsablesporindicador", "rol_usuario", "variablesporindicador" };
+
+    // Variable para almacenar la tabla seleccionada
+    private string? tablaSeleccionada;
+
+    // Variable para almacenar los datos de la tabla obtenida
+    private List<Dictionary<string, object>>? datosTabla;
+
+    // Método que se dispara cuando se cambia la selección en el dropdown
+    private async Task OnTablaChanged(ChangeEventArgs e)
+    {
+        tablaSeleccionada = e.Value?.ToString();
+        datosTabla = null; // Reinicia los datos mientras se carga la nueva tabla
+
+        if (!string.IsNullOrWhiteSpace(tablaSeleccionada))
+        {
+            // Se llama al servicio genérico para obtener los datos de la tabla seleccionada.
+            // Se asume que "NombreProyecto" es el identificador del proyecto en la API, modifícalo según corresponda.
+            datosTabla = await servicioEntidad.ObtenerTodosAsync("NombreProyecto", tablaSeleccionada);
+        }
+    }
+}

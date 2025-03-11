@@ -1,0 +1,142 @@
+@page "/actualizar-registro-generico"
+@inject FrontBlazor.Services.ServicioEntidad servicioEntidad
+
+<h1>Actualizar Registro Genérico</h1>
+
+<!-- Desplegable para seleccionar la tabla -->
+<div class="mb-3">
+    <label for="tablaSeleccion" class="form-label">Selecciona una tabla:</label>
+    <select id="tablaSeleccion" class="form-select" @onchange="OnTablaChanged">
+        <option value="">-- Selecciona --</option>
+        @foreach (var tabla in columnasPorTabla.Keys)
+        {
+            <option value="@tabla">@tabla</option>
+        }
+    </select>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(tablaSeleccionada))
+{
+    <!-- Campo para ingresar el ID del registro a actualizar -->
+    <div class="mb-3">
+        <label for="registroId" class="form-label">Ingrese el ID del registro a actualizar:</label>
+        <InputText id="registroId" class="form-control" @bind-Value="registroId" />
+    </div>
+    <button class="btn btn-secondary" @onclick="CargarRegistro">Cargar Registro</button>
+}
+
+@if (registroCargado)
+{
+    <h2>Modificar registro en la tabla: @tablaSeleccionada</h2>
+    <EditForm Model="@registroActual" OnValidSubmit="OnModificar">
+        @foreach (var columna in columnasPorTabla[tablaSeleccionada!])
+        {
+            <div class="mb-3">
+                <label>@columna</label>
+                @if (columna == "id")
+                {
+                    <!-- Campo deshabilitado para evitar modificar la clave primaria -->
+                    <InputText class="form-control" @bind-Value="registroActual[columna]" disabled />
+                }
+                else
+                {
+                    <InputText class="form-control" @bind-Value="registroActual[columna]" />
+                }
+            </div>
+        }
+        <button type="submit" class="btn btn-primary">Modificar</button>
+    </EditForm>
+}
+
+@if (!string.IsNullOrWhiteSpace(mensaje))
+{
+    <div class="alert alert-info mt-3">@mensaje</div>
+}
+
+@code {
+    // Diccionario que mapea el nombre de la tabla a su lista de columnas
+    private Dictionary<string, List<string>> columnasPorTabla = new()
+    {
+        { "actor", new List<string> { "id", "nombre", "fkidtipoactor" } },
+        { "indicador", new List<string> { "id", "codigo", "nombre", "objetivo", "alcance", "formula", "fkidtipoindicador", "fkidunidadmedicion", "meta", "fkidsentido", "fkidfrecuencia", "fkidarticulo", "fkidliteral", "fkidnumeral", "fkidparagrafo" } },
+        { "resultadoindicador", new List<string> { "id", "resultado", "fechacalculo", "fkidindicador" } },
+        { "variable", new List<string> { "id", "nombre", "fechacreacion", "fkemailusuario" } },
+        { "fuentesporindicador", new List<string> { "fkidfuente", "fkidindicador" } },
+        { "represenvisualporindicador", new List<string> { "fkidindicador", "fkidrepresenvisual" } },
+        { "responsablesporindicador", new List<string> { "fkidresponsable", "fkidindicador", "fechaasignacion" } },
+        { "rol_usuario", new List<string> { "fkemail", "fkidrol" } },
+        { "variablesporindicador", new List<string> { "id", "fkidvariable", "fkidindicador", "dato", "fkemailusuario", "fechadato" } }
+    };
+
+    // Tabla seleccionada en el desplegable
+    private string? tablaSeleccionada;
+    // ID del registro a actualizar ingresado por el usuario
+    private string registroId = string.Empty;
+    // Bandera para indicar si se cargó el registro
+    private bool registroCargado = false;
+    // Registro actual (datos) a modificar, almacenado como Dictionary<string, string> para facilitar el binding
+    private Dictionary<string, string> registroActual = new();
+    // Mensaje de retroalimentación
+    private string? mensaje;
+
+    private void OnTablaChanged(ChangeEventArgs e)
+    {
+        tablaSeleccionada = e.Value?.ToString();
+        registroId = string.Empty;
+        registroCargado = false;
+        registroActual.Clear();
+        mensaje = null;
+    }
+
+    // Método para cargar el registro a actualizar según el ID proporcionado
+    private async Task CargarRegistro()
+    {
+        if (string.IsNullOrWhiteSpace(tablaSeleccionada))
+        {
+            mensaje = "Por favor, seleccione una tabla.";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(registroId))
+        {
+            mensaje = "Por favor, ingrese el ID del registro a actualizar.";
+            return;
+        }
+
+        var resultado = await servicioEntidad.ObtenerPorClaveAsync("NombreProyecto", tablaSeleccionada, "id", registroId);
+        if (resultado != null)
+        {
+            // Convertir cada valor a string para el binding
+            registroActual = resultado.ToDictionary(kvp => kvp.Key, kvp => kvp.Value?.ToString() ?? string.Empty);
+            registroCargado = true;
+            mensaje = "Registro cargado correctamente.";
+        }
+        else
+        {
+            mensaje = $"No se encontró el registro con ID {registroId} en la tabla {tablaSeleccionada}.";
+            registroCargado = false;
+            registroActual.Clear();
+        }
+    }
+
+    // Método para enviar los datos modificados y actualizar el registro en la API
+    private async Task OnModificar()
+    {
+        if (!registroCargado)
+        {
+            mensaje = "No se ha cargado ningún registro para modificar.";
+            return;
+        }
+
+        // Convertir el registro actual a Dictionary<string, object>
+        var datosActualizados = registroActual.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
+        bool resultado = await servicioEntidad.ActualizarAsync("NombreProyecto", tablaSeleccionada!, "id", registroId, datosActualizados);
+        if (resultado)
+        {
+            mensaje = "Registro actualizado exitosamente.";
+        }
+        else
+        {
+            mensaje = "Ocurrió un error al actualizar el registro.";
+        }
+    }
+}

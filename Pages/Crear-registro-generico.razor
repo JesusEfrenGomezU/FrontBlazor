@@ -1,0 +1,199 @@
+@page "/crear-registro-generico"
+@inject FrontBlazor.Services.ServicioEntidad servicioEntidad
+
+<h1>Crear Registro Genérico</h1>
+
+<!-- Desplegable para seleccionar la tabla -->
+<div class="mb-3">
+    <label for="tablaSeleccion" class="form-label">Selecciona una tabla:</label>
+    <select id="tablaSeleccion" class="form-select" @onchange="OnTablaChanged">
+        <option value="">-- Selecciona --</option>
+        @foreach (var tabla in columnasPorTabla.Keys)
+        {
+            <option value="@tabla">@tabla</option>
+        }
+    </select>
+</div>
+
+<!-- Se muestra el formulario si hay una tabla seleccionada -->
+@if (!string.IsNullOrWhiteSpace(tablaSeleccionada))
+{
+    <h2>Crear nuevo registro en la tabla: @tablaSeleccionada</h2>
+
+    <EditForm Model="@nuevoRegistro" OnValidSubmit="OnSubmit">
+        @foreach (var columna in columnasPorTabla[tablaSeleccionada])
+        {
+            <div class="mb-3">
+                <label>@columna</label>
+                <!-- Cada campo se enlaza a la clave correspondiente en el diccionario 'nuevoRegistro' -->
+                <InputText class="form-control" @bind-Value="nuevoRegistro[columna]" />
+            </div>
+        }
+        <button type="submit" class="btn btn-primary">Guardar</button>
+    </EditForm>
+
+    @if (!string.IsNullOrWhiteSpace(mensaje))
+    {
+        <div class="alert alert-info mt-3">@mensaje</div>
+    }
+}
+
+@code {
+    // Diccionario que asocia cada tabla con sus columnas.
+    // Ajusta los nombres según tu base de datos.
+    private Dictionary<string, List<string>> columnasPorTabla = new()
+    {
+        {
+            "actor", new List<string>
+            {
+                "id",
+                "nombre",
+                "fkidtipoactor"
+            }
+        },
+        {
+            "indicador", new List<string>
+            {
+                "id",
+                "codigo",
+                "nombre",
+                "objetivo",
+                "alcance",
+                "formula",
+                "fkidtipoindicador",
+                "fkidunidadmedicion",
+                "meta",
+                "fkidsentido",
+                "fkidfrecuencia",
+                "fkidarticulo",
+                "fkidliteral",
+                "fkidnumeral",
+                "fkidparagrafo"
+            }
+        },
+        {
+            "resultadoindicador", new List<string>
+            {
+                "id",
+                "resultado",
+                "fechacalculo",
+                "fkidindicador"
+            }
+        },
+        {
+            "variable", new List<string>
+            {
+                "id",
+                "nombre",
+                "fechacreacion",
+                "fkemailusuario"
+            }
+        },
+        {
+            "fuentesporindicador", new List<string>
+            {
+                "fkidfuente",
+                "fkidindicador"
+            }
+        },
+        {
+            "represenvisualporindicador", new List<string>
+            {
+                "fkidindicador",
+                "fkidrepresenvisual"
+            }
+        },
+        {
+            "responsablesporindicador", new List<string>
+            {
+                "fkidresponsable",
+                "fkidindicador",
+                "fechaasignacion"
+            }
+        },
+        {
+            "rol_usuario", new List<string>
+            {
+                "fkemail",
+                "fkidrol"
+            }
+        },
+        {
+            "variablesporindicador", new List<string>
+            {
+                "id",
+                "fkidvariable",
+                "fkidindicador",
+                "dato",
+                "fkemailusuario",
+                "fechadato"
+            }
+        }
+
+    };
+
+    // Tabla seleccionada por el usuario en el desplegable
+    private string? tablaSeleccionada;
+
+    // Diccionario para almacenar los valores que ingresa el usuario (todos como string)
+    private Dictionary<string, string> nuevoRegistro = new();
+
+    // Mensaje de retroalimentación (éxito o error)
+    private string? mensaje;
+
+    // Se invoca cuando el usuario selecciona una tabla en el desplegable
+    private void OnTablaChanged(ChangeEventArgs e)
+    {
+        tablaSeleccionada = e.Value?.ToString();
+        mensaje = null;
+
+        if (!string.IsNullOrWhiteSpace(tablaSeleccionada)
+            && columnasPorTabla.ContainsKey(tablaSeleccionada))
+        {
+            // Inicializamos un diccionario con clave = nombre de columna, valor = string.Empty
+            nuevoRegistro = columnasPorTabla[tablaSeleccionada]
+                .ToDictionary(col => col, col => string.Empty);
+        }
+        else
+        {
+            nuevoRegistro.Clear();
+        }
+    }
+
+    // Se ejecuta cuando el usuario hace clic en "Guardar" y el formulario se envía
+    private async Task OnSubmit()
+    {
+        if (string.IsNullOrWhiteSpace(tablaSeleccionada))
+        {
+            mensaje = "Por favor, selecciona una tabla.";
+            return;
+        }
+
+        // Convertimos Dictionary<string, string> a Dictionary<string, object> 
+        // porque el servicio genérico requiere valores de tipo 'object'
+        var registroObjeto = nuevoRegistro.ToDictionary(
+            kvp => kvp.Key,
+            kvp => (object)kvp.Value
+        );
+
+        // Ajusta "NombreProyecto" según corresponda en tu API
+        bool resultado = await servicioEntidad.CrearAsync(
+            "NombreProyecto", 
+            tablaSeleccionada, 
+            registroObjeto
+        );
+
+        if (resultado)
+        {
+            mensaje = $"¡Registro creado en la tabla '{tablaSeleccionada}' con éxito!";
+
+            // Opcional: reiniciar campos
+            nuevoRegistro = columnasPorTabla[tablaSeleccionada]
+                .ToDictionary(col => col, col => string.Empty);
+        }
+        else
+        {
+            mensaje = "Ocurrió un error al guardar el registro.";
+        }
+    }
+}
