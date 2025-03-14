@@ -25,6 +25,7 @@
     <button class="btn btn-secondary" @onclick="CargarRegistro">Cargar Registro</button>
 }
 
+<!-- Crea los campos a actualizar -->
 @if (registroCargado)
 {
     <h2>Modificar registro en la tabla: @tablaSeleccionada</h2>
@@ -35,7 +36,7 @@
                 <label>@columna</label>
                 @if (columna == clavesPrimarias[tablaSeleccionada])
                 {
-                    <!-- Campo deshabilitado para evitar modificar la clave primaria -->
+                    <!-- clave primaria -->
                     <InputText class="form-control" @bind-Value="registroActual[columna]" disabled />
                 }
                 else
@@ -44,11 +45,12 @@
                 }
             </div>
         }
-
+        
         <button type="submit" class="btn btn-primary">Modificar</button>
     </EditForm>
 }
 
+<!-- Muestra mensajes del estado del Booststrap -->
 @if (!string.IsNullOrWhiteSpace(mensaje))
 {
     <div class="alert alert-info mt-3">@mensaje</div>

@@ -227,17 +227,9 @@
 
         // Convertimos Dictionary<string, string> a Dictionary<string, object> 
         // porque el servicio genérico requiere valores de tipo 'object'
-        var registroObjeto = nuevoRegistro.ToDictionary(
-            kvp => kvp.Key,
-            kvp => (object)kvp.Value
-        );
-
-        // Ajusta "NombreProyecto" según corresponda en tu API
-        bool resultado = await servicioEntidad.CrearAsync(
-            "NombreProyecto", 
-            tablaSeleccionada, 
-            registroObjeto
-        );
+        var registroObjeto = nuevoRegistro.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
+        
+        bool resultado = await servicioEntidad.CrearAsync("NombreProyecto", tablaSeleccionada, registroObjeto);
 
         if (resultado)
         {

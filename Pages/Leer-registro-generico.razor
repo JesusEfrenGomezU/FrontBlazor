@@ -28,6 +28,7 @@
     }
     else
     {
+        <!-- Crea una tabla Contenido estilos de Bootstrap -->
         <table class="table table-striped">
             <thead>
                 <tr>
@@ -53,7 +54,7 @@
 }
 
 @code {
-    // Lista de nombres de tablas disponibles; se puede obtener dinámicamente si la API lo soporta.
+    // Lista de nombres de tablas disponibles
     private List<string> tablasDisponibles = new List<string> { "indicador", "actor", "resultadoindicador", "variable", 
         "fuentesporindicador", "represenvisualporindicador", "responsablesporindicador", "rol_usuario", 
         "variablesporindicador", "tipoindicador", "unidadmedicion", "sentido", "fuente","represenvisual", "tipoactor", "usuario", "rol" };
