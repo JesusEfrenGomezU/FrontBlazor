@@ -81,6 +81,7 @@
                 }
                 <div class="mb-3">
                     <label>@columna</label>
+
                     @if (tablaSeleccionada == "actor" && columna == "fkidtipoactor")
                     {
                         <select class="form-select" @bind="nuevoRegistro[columna]">
@@ -148,54 +149,66 @@
                                 }
                             </select>
                         }
-                        // Los siguientes campos son opcionales y llevan opción "No Aplica"
-                        else if (columna == "fkidarticulo" || columna == "fkidliteral" ||
-                                 columna == "fkidnumeral" || columna == "fkidparagrafo")
+                        // --- CAMPOS CON FILTRADO DEPENDIENTE (CREACIÓN) ---
+                        else if (columna == "fkidarticulo") // <-- CAMBIO AQUÍ
                         {
-                            <select class="form-select" @bind="nuevoRegistro[columna]">
+                            <select class="form-select"
+                                    value="@nuevoRegistro[columna]"
+                                    @onchange="OnArticuloChangedCrear">
                                 <option value="">No Aplica</option>
-                                @if (columna == "fkidarticulo")
+                                @if (articulos != null)
                                 {
-                                    @if (articulos != null)
+                                    @foreach (var item in articulos)
                                     {
-                                        @foreach (var item in articulos)
-                                        {
-                                            <option value="@item["id"]">@item["nombre"]</option>
-                                        }
-                                    }
-                                }
-                                else if (columna == "fkidliteral")
-                                {
-                                    @if (literales != null)
-                                    {
-                                        @foreach (var item in literales)
-                                        {
-                                            <option value="@item["id"]">@item["descripcion"]</option>
-                                        }
-                                    }
-                                }
-                                else if (columna == "fkidnumeral")
-                                {
-                                    @if (numerales != null)
-                                    {
-                                        @foreach (var item in numerales)
-                                        {
-                                            <option value="@item["id"]">@item["descripcion"]</option>
-                                        }
-                                    }
-                                }
-                                else if (columna == "fkidparagrafo")
-                                {
-                                    @if (parrafos != null)
-                                    {
-                                        @foreach (var item in parrafos)
-                                        {
-                                            <option value="@item["id"]">@item["descripcion"]</option>
-                                        }
+                                        <option value="@item["id"]">@item["nombre"]</option>
                                     }
                                 }
                             </select>
                         }
+                        else if (columna == "fkidliteral") // <-- CAMBIO AQUÍ
+                        {
+                            <select class="form-select"
+                                    value="@nuevoRegistro[columna]"
+                                    @onchange="OnLiteralChangedCrear">
+                                <option value="">No Aplica</option>
+                                @if (filteredLiterales != null)
+                                {
+                                    @foreach (var item in filteredLiterales)
+                                    {
+                                        <option value="@item["id"]">@item["descripcion"]</option>
+                                    }
+                                }
+                            </select>
+                        }
+                        else if (columna == "fkidnumeral")
+                        {
+                            <!-- Podemos mantener @bind si no hay evento adicional -->
+                            <select class="form-select" @bind="nuevoRegistro[columna]">
+                                <option value="">No Aplica</option>
+                                @if (filteredNumerales != null)
+                                {
+                                    @foreach (var item in filteredNumerales)
+                                    {
+                                        <option value="@item["id"]">@item["descripcion"]</option>
+                                    }
+                                }
+                            </select>
+                        }
+                        else if (columna == "fkidparagrafo")
+                        {
+                            <!-- Podemos mantener @bind si no hay evento adicional -->
+                            <select class="form-select" @bind="nuevoRegistro[columna]">
+                                <option value="">No Aplica</option>
+                                @if (filteredParrafos != null)
+                                {
+                                    @foreach (var item in filteredParrafos)
+                                    {
+                                        <option value="@item["id"]">@item["descripcion"]</option>
+                                    }
+                                }
+                            </select>
+                        }
+                        // --- FIN CAMPOS CON FILTRADO DEPENDIENTE (CREACIÓN) ---
                         else
                         {
                             <InputText class="form-control" @bind-Value="nuevoRegistro[columna]" />
@@ -507,53 +520,64 @@
                                     }
                                 </select>
                             }
-                            else if (columna == "fkidarticulo" || columna == "fkidliteral" ||
-                                     columna == "fkidnumeral" || columna == "fkidparagrafo")
+                            // --- CAMPOS CON FILTRADO DEPENDIENTE (MODIFICACIÓN) ---
+                            else if (columna == "fkidarticulo") // <-- CAMBIO AQUÍ
                             {
-                                <select class="form-select" @bind="registroActual[columna]">
+                                <select class="form-select"
+                                        value="@registroActual[columna]"
+                                        @onchange="OnArticuloChangedModificar">
                                     <option value="">No Aplica</option>
-                                    @if (columna == "fkidarticulo")
+                                    @if (articulos != null)
                                     {
-                                        @if (articulos != null)
+                                        @foreach (var item in articulos)
                                         {
-                                            @foreach (var item in articulos)
-                                            {
-                                                <option value="@item["id"]">@item["nombre"]</option>
-                                            }
-                                        }
-                                    }
-                                    else if (columna == "fkidliteral")
-                                    {
-                                        @if (literales != null)
-                                        {
-                                            @foreach (var item in literales)
-                                            {
-                                                <option value="@item["id"]">@item["descripcion"]</option>
-                                            }
-                                        }
-                                    }
-                                    else if (columna == "fkidnumeral")
-                                    {
-                                        @if (numerales != null)
-                                        {
-                                            @foreach (var item in numerales)
-                                            {
-                                                <option value="@item["id"]">@item["descripcion"]</option>
-                                            }
-                                        }
-                                    }
-                                    else if (columna == "fkidparagrafo")
-                                    {
-                                        @if (parrafos != null)
-                                        {
-                                            @foreach (var item in parrafos)
-                                            {
-                                                <option value="@item["id"]">@item["descripcion"]</option>
-                                            }
+                                            <option value="@item["id"]">@item["nombre"]</option>
                                         }
                                     }
                                 </select>
                             }
+                            else if (columna == "fkidliteral") // <-- CAMBIO AQUÍ
+                            {
+                                <select class="form-select"
+                                        value="@registroActual[columna]"
+                                        @onchange="OnLiteralChangedModificar">
+                                    <option value="">No Aplica</option>
+                                    @if (filteredLiterales != null)
+                                    {
+                                        @foreach (var item in filteredLiterales)
+                                        {
+                                            <option value="@item["id"]">@item["descripcion"]</option>
+                                        }
+                                    }
+                                </select>
+                            }
+                            else if (columna == "fkidnumeral")
+                            {
+                                <select class="form-select" @bind="registroActual[columna]">
+                                    <option value="">No Aplica</option>
+                                    @if (filteredNumerales != null)
+                                    {
+                                        @foreach (var item in filteredNumerales)
+                                        {
+                                            <option value="@item["id"]">@item["descripcion"]</option>
+                                        }
+                                    }
+                                </select>
+                            }
+                            else if (columna == "fkidparagrafo")
+                            {
+                                <select class="form-select" @bind="registroActual[columna]">
+                                    <option value="">No Aplica</option>
+                                    @if (filteredParrafos != null)
+                                    {
+                                        @foreach (var item in filteredParrafos)
+                                        {
+                                            <option value="@item["id"]">@item["descripcion"]</option>
+                                        }
+                                    }
+                                </select>
+                            }
+                            // --- FIN CAMPOS CON FILTRADO DEPENDIENTE (MODIFICACIÓN) ---
                             else
                             {
                                 <InputText class="form-control" @bind-Value="registroActual[columna]" />
@@ -844,6 +868,11 @@
     private List<Dictionary<string, object>>? numerales;
     private List<Dictionary<string, object>>? parrafos;
 
+    // Listas filtradas para Artículo->Literal->Numeral->Parágrafo
+    private List<Dictionary<string, object>> filteredLiterales = new();
+    private List<Dictionary<string, object>> filteredNumerales = new();
+    private List<Dictionary<string, object>> filteredParrafos = new();
+
     // Para fuentesporindicador.
     private List<Dictionary<string, object>>? fuentes;
     private List<Dictionary<string, object>>? indicadoresForFuentes;
@@ -863,7 +892,6 @@
     // Para variablesporindicador.
     private List<Dictionary<string, object>>? variablesForVarPorIndicador;
     private List<Dictionary<string, object>>? indicadoresForVarPorIndicador;
-    // Usamos "usuarios" ya cargado para fkemailusuario en variablesporindicador.
 
     private string registroIdEliminar = string.Empty;
     private string registroIdModificar = string.Empty;
@@ -881,6 +909,11 @@
         registroIdModificar = string.Empty;
         registroCargado = false;
         registroActual.Clear();
+
+        // Limpiamos listas filtradas
+        filteredLiterales.Clear();
+        filteredNumerales.Clear();
+        filteredParrafos.Clear();
 
         if (!string.IsNullOrWhiteSpace(tablaSeleccionada))
         {
@@ -990,6 +1023,82 @@
         }
     }
 
+    // ---------------------------
+    // MÉTODOS DE FILTRADO (CREAR)
+    // ---------------------------
+    private void OnArticuloChangedCrear(ChangeEventArgs e)
+    {
+        var selectedArticulo = e.Value?.ToString() ?? "";
+        nuevoRegistro["fkidarticulo"] = selectedArticulo;
+
+        // Filtrar literales
+        filteredLiterales = string.IsNullOrEmpty(selectedArticulo) || literales == null
+            ? new List<Dictionary<string, object>>()
+            : literales.Where(l => l["fkidarticulo"]?.ToString() == selectedArticulo).ToList();
+
+        // Filtrar parrafos
+        filteredParrafos = string.IsNullOrEmpty(selectedArticulo) || parrafos == null
+            ? new List<Dictionary<string, object>>()
+            : parrafos.Where(p => p["fkidarticulo"]?.ToString() == selectedArticulo).ToList();
+
+        // Reiniciar campos dependientes
+        nuevoRegistro["fkidliteral"] = "";
+        nuevoRegistro["fkidnumeral"] = "";
+        nuevoRegistro["fkidparagrafo"] = "";
+
+        // Reiniciar numerales
+        filteredNumerales.Clear();
+    }
+
+    private void OnLiteralChangedCrear(ChangeEventArgs e)
+    {
+        var selectedLiteral = e.Value?.ToString() ?? "";
+        nuevoRegistro["fkidliteral"] = selectedLiteral;
+
+        // Filtrar numerales asociados al literal
+        filteredNumerales = string.IsNullOrEmpty(selectedLiteral) || numerales == null
+            ? new List<Dictionary<string, object>>()
+            : numerales.Where(n => n["fkidliteral"]?.ToString() == selectedLiteral).ToList();
+
+        // Reiniciar numeral
+        nuevoRegistro["fkidnumeral"] = "";
+    }
+
+    // ------------------------------
+    // MÉTODOS DE FILTRADO (MODIFICAR)
+    // ------------------------------
+    private void OnArticuloChangedModificar(ChangeEventArgs e)
+    {
+        var selectedArticulo = e.Value?.ToString() ?? "";
+        registroActual["fkidarticulo"] = selectedArticulo;
+
+        filteredLiterales = string.IsNullOrEmpty(selectedArticulo) || literales == null
+            ? new List<Dictionary<string, object>>()
+            : literales.Where(l => l["fkidarticulo"]?.ToString() == selectedArticulo).ToList();
+
+        filteredParrafos = string.IsNullOrEmpty(selectedArticulo) || parrafos == null
+            ? new List<Dictionary<string, object>>()
+            : parrafos.Where(p => p["fkidarticulo"]?.ToString() == selectedArticulo).ToList();
+
+        registroActual["fkidliteral"] = "";
+        registroActual["fkidnumeral"] = "";
+        registroActual["fkidparagrafo"] = "";
+
+        filteredNumerales.Clear();
+    }
+
+    private void OnLiteralChangedModificar(ChangeEventArgs e)
+    {
+        var selectedLiteral = e.Value?.ToString() ?? "";
+        registroActual["fkidliteral"] = selectedLiteral;
+
+        filteredNumerales = string.IsNullOrEmpty(selectedLiteral) || numerales == null
+            ? new List<Dictionary<string, object>>()
+            : numerales.Where(n => n["fkidliteral"]?.ToString() == selectedLiteral).ToList();
+
+        registroActual["fkidnumeral"] = "";
+    }
+
     private async Task OnSubmitCrear()
     {
         if (string.IsNullOrWhiteSpace(tablaSeleccionada))
@@ -1063,6 +1172,27 @@
             registroActual = resultado.ToDictionary(kvp => kvp.Key, kvp => kvp.Value?.ToString() ?? string.Empty);
             registroCargado = true;
             mensaje = "Registro cargado correctamente.";
+
+            // Si ya existe un artículo asignado, filtrar literales y párrafos
+            if (tablaSeleccionada == "indicador" && registroActual.ContainsKey("fkidarticulo"))
+            {
+                string artSel = registroActual["fkidarticulo"];
+                filteredLiterales = string.IsNullOrEmpty(artSel) || literales == null
+                    ? new List<Dictionary<string, object>>()
+                    : literales.Where(l => l["fkidarticulo"]?.ToString() == artSel).ToList();
+
+                filteredParrafos = string.IsNullOrEmpty(artSel) || parrafos == null
+                    ? new List<Dictionary<string, object>>()
+                    : parrafos.Where(p => p["fkidarticulo"]?.ToString() == artSel).ToList();
+            }
+            // Si ya existe un literal asignado, filtrar numerales
+            if (tablaSeleccionada == "indicador" && registroActual.ContainsKey("fkidliteral"))
+            {
+                string litSel = registroActual["fkidliteral"];
+                filteredNumerales = string.IsNullOrEmpty(litSel) || numerales == null
+                    ? new List<Dictionary<string, object>>()
+                    : numerales.Where(n => n["fkidliteral"]?.ToString() == litSel).ToList();
+            }
         }
         else
         {
