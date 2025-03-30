@@ -1,5 +1,6 @@
 @page "/crud-generalizado"
 @inject FrontBlazor.Services.ServicioEntidad servicioEntidad
+@inject NavigationManager NavigationManager
 
 <h1>CRUD Generalizado</h1>
 
@@ -53,20 +54,34 @@
     }
 }
 
-<!-- Botones de operación -->
-<div class="mb-3">
-    <button class="btn btn-primary" @onclick='() => SeleccionarOperacion("crear")'>Crear</button>
-    <button class="btn btn-danger" @onclick='() => SeleccionarOperacion("eliminar")'>Eliminar</button>
-    <button class="btn btn-secondary" @onclick='() => SeleccionarOperacion("modificar")'>Modificar</button>
-</div>
+@if (!string.IsNullOrEmpty(tablaSeleccionada) &&
+    tablaSeleccionada != "represenvisualporindicador" &&
+    tablaSeleccionada != "responsablesporindicador" &&
+    tablaSeleccionada != "fuentesporindicador" &&
+    tablaSeleccionada != "variablesporindicador")
+{
+    <div class="mb-3">
+        <button class="btn btn-primary" @onclick='() => SeleccionarOperacion("crear")'>Crear</button>
+        <button class="btn btn-danger" @onclick='() => SeleccionarOperacion("eliminar")'>Eliminar</button>
+        <button class="btn btn-secondary" @onclick='() => SeleccionarOperacion("modificar")'>Modificar</button>
+        @if (tablaSeleccionada == "indicador")
+        {
+            <button class="btn btn-info ms-2" @onclick='() => NavigationManager.NavigateTo("/procedimientos")'>Relaciones Especiales</button>
+        }
+    </div>
+}
 
 @if (!string.IsNullOrEmpty(mensaje))
 {
     <div class="alert alert-info">@mensaje</div>
 }
 
-<!-- Panel de creación -->
-@if (selectedOperation == "crear")
+@* Panel de creación: solo se muestra para tablas que permiten operaciones (no para las de solo lectura) *@
+@if (selectedOperation == "crear" &&
+    tablaSeleccionada != "represenvisualporindicador" &&
+    tablaSeleccionada != "responsablesporindicador" &&
+    tablaSeleccionada != "fuentesporindicador" &&
+    tablaSeleccionada != "variablesporindicador")
 {
     <h3>Crear Registro en @tablaSeleccionada</h3>
     @if (!string.IsNullOrEmpty(tablaSeleccionada))
@@ -81,7 +96,7 @@
                 }
                 <div class="mb-3">
                     <label>@columna</label>
-
+                    
                     @if (tablaSeleccionada == "actor" && columna == "fkidtipoactor")
                     {
                         <select class="form-select" @bind="nuevoRegistro[columna]">
@@ -149,8 +164,7 @@
                                 }
                             </select>
                         }
-                        // --- CAMPOS CON FILTRADO DEPENDIENTE (CREACIÓN) ---
-                        else if (columna == "fkidarticulo") // <-- CAMBIO AQUÍ
+                        else if (columna == "fkidarticulo")
                         {
                             <select class="form-select"
                                     value="@nuevoRegistro[columna]"
@@ -165,7 +179,7 @@
                                 }
                             </select>
                         }
-                        else if (columna == "fkidliteral") // <-- CAMBIO AQUÍ
+                        else if (columna == "fkidliteral")
                         {
                             <select class="form-select"
                                     value="@nuevoRegistro[columna]"
@@ -182,7 +196,6 @@
                         }
                         else if (columna == "fkidnumeral")
                         {
-                            <!-- Podemos mantener @bind si no hay evento adicional -->
                             <select class="form-select" @bind="nuevoRegistro[columna]">
                                 <option value="">No Aplica</option>
                                 @if (filteredNumerales != null)
@@ -196,7 +209,6 @@
                         }
                         else if (columna == "fkidparagrafo")
                         {
-                            <!-- Podemos mantener @bind si no hay evento adicional -->
                             <select class="form-select" @bind="nuevoRegistro[columna]">
                                 <option value="">No Aplica</option>
                                 @if (filteredParrafos != null)
@@ -204,198 +216,6 @@
                                     @foreach (var item in filteredParrafos)
                                     {
                                         <option value="@item["id"]">@item["descripcion"]</option>
-                                    }
-                                }
-                            </select>
-                        }
-                        // --- FIN CAMPOS CON FILTRADO DEPENDIENTE (CREACIÓN) ---
-                        else
-                        {
-                            <InputText class="form-control" @bind-Value="nuevoRegistro[columna]" />
-                        }
-                    }
-                    else if (tablaSeleccionada == "fuentesporindicador")
-                    {
-                        if (columna == "fkidfuente")
-                        {
-                            <select class="form-select" @bind="nuevoRegistro[columna]">
-                                <option value="">-- Seleccione Fuente --</option>
-                                @if (fuentes != null)
-                                {
-                                    @foreach (var item in fuentes)
-                                    {
-                                        <option value="@item["id"]">@item["nombre"]</option>
-                                    }
-                                }
-                            </select>
-                        }
-                        else if (columna == "fkidindicador")
-                        {
-                            <select class="form-select" @bind="nuevoRegistro[columna]">
-                                <option value="">-- Seleccione Indicador --</option>
-                                @if (indicadoresForFuentes != null)
-                                {
-                                    @foreach (var item in indicadoresForFuentes)
-                                    {
-                                        <option value="@item["id"]">@item["nombre"]</option>
-                                    }
-                                }
-                            </select>
-                        }
-                        else
-                        {
-                            <InputText class="form-control" @bind-Value="nuevoRegistro[columna]" />
-                        }
-                    }
-                    else if (tablaSeleccionada == "represenvisualporindicador")
-                    {
-                        if (columna == "fkidindicador")
-                        {
-                            <select class="form-select" @bind="nuevoRegistro[columna]">
-                                <option value="">-- Seleccione Indicador --</option>
-                                @if (indicadoresForRepresen != null)
-                                {
-                                    @foreach (var item in indicadoresForRepresen)
-                                    {
-                                        <option value="@item["id"]">@item["nombre"]</option>
-                                    }
-                                }
-                            </select>
-                        }
-                        else if (columna == "fkidrepresenvisual")
-                        {
-                            <select class="form-select" @bind="nuevoRegistro[columna]">
-                                <option value="">-- Seleccione Representación Visual --</option>
-                                @if (represenVisuales != null)
-                                {
-                                    @foreach (var item in represenVisuales)
-                                    {
-                                        <option value="@item["id"]">@item["nombre"]</option>
-                                    }
-                                }
-                            </select>
-                        }
-                        else
-                        {
-                            <InputText class="form-control" @bind-Value="nuevoRegistro[columna]" />
-                        }
-                    }
-                    else if (tablaSeleccionada == "responsablesporindicador")
-                    {
-                        if (columna == "fkidresponsable")
-                        {
-                            <select class="form-select" @bind="nuevoRegistro[columna]">
-                                <option value="">-- Seleccione Actor --</option>
-                                @if (actores != null)
-                                {
-                                    @foreach (var item in actores)
-                                    {
-                                        <option value="@item["id"]">@item["nombre"]</option>
-                                    }
-                                }
-                            </select>
-                        }
-                        else if (columna == "fkidindicador")
-                        {
-                            <select class="form-select" @bind="nuevoRegistro[columna]">
-                                <option value="">-- Seleccione Indicador --</option>
-                                @if (indicadoresForResponsables != null)
-                                {
-                                    @foreach (var item in indicadoresForResponsables)
-                                    {
-                                        <option value="@item["id"]">@item["nombre"]</option>
-                                    }
-                                }
-                            </select>
-                        }
-                        else
-                        {
-                            <InputText class="form-control" @bind-Value="nuevoRegistro[columna]" />
-                        }
-                    }
-                    else if (tablaSeleccionada == "rol_usuario")
-                    {
-                        if (columna == "fkemail")
-                        {
-                            <select class="form-select" @bind="nuevoRegistro[columna]">
-                                <option value="">-- Seleccione Usuario --</option>
-                                @if (usuarios != null)
-                                {
-                                    @foreach (var item in usuarios)
-                                    {
-                                        <option value="@item["email"]">@item["email"]</option>
-                                    }
-                                }
-                            </select>
-                        }
-                        else if (columna == "fkidrol")
-                        {
-                            <select class="form-select" @bind="nuevoRegistro[columna]">
-                                <option value="">-- Seleccione Rol --</option>
-                                @if (roles != null)
-                                {
-                                    @foreach (var item in roles)
-                                    {
-                                        <option value="@item["id"]">@item["nombre"]</option>
-                                    }
-                                }
-                            </select>
-                        }
-                        else
-                        {
-                            <InputText class="form-control" @bind-Value="nuevoRegistro[columna]" />
-                        }
-                    }
-                    else if (tablaSeleccionada == "variable" && columna == "fkemailusuario")
-                    {
-                        <select class="form-select" @bind="nuevoRegistro[columna]">
-                            <option value="">-- Seleccione Usuario --</option>
-                            @if (usuarios != null)
-                            {
-                                @foreach (var item in usuarios)
-                                {
-                                    <option value="@item["email"]">@item["email"]</option>
-                                }
-                            }
-                        </select>
-                    }
-                    else if (tablaSeleccionada == "variablesporindicador")
-                    {
-                        if (columna == "fkidvariable")
-                        {
-                            <select class="form-select" @bind="nuevoRegistro[columna]">
-                                <option value="">-- Seleccione Variable --</option>
-                                @if (variablesForVarPorIndicador != null)
-                                {
-                                    @foreach (var item in variablesForVarPorIndicador)
-                                    {
-                                        <option value="@item["id"]">@item["nombre"]</option>
-                                    }
-                                }
-                            </select>
-                        }
-                        else if (columna == "fkidindicador")
-                        {
-                            <select class="form-select" @bind="nuevoRegistro[columna]">
-                                <option value="">-- Seleccione Indicador --</option>
-                                @if (indicadoresForVarPorIndicador != null)
-                                {
-                                    @foreach (var item in indicadoresForVarPorIndicador)
-                                    {
-                                        <option value="@item["id"]">@item["nombre"]</option>
-                                    }
-                                }
-                            </select>
-                        }
-                        else if (columna == "fkemailusuario")
-                        {
-                            <select class="form-select" @bind="nuevoRegistro[columna]">
-                                <option value="">-- Seleccione Usuario --</option>
-                                @if (usuarios != null)
-                                {
-                                    @foreach (var item in usuarios)
-                                    {
-                                        <option value="@item["email"]">@item["email"]</option>
                                     }
                                 }
                             </select>
@@ -416,8 +236,12 @@
     }
 }
 
-<!-- Panel de eliminación -->
-@if (selectedOperation == "eliminar")
+@* Panel de eliminación *@
+@if (selectedOperation == "eliminar" &&
+    tablaSeleccionada != "represenvisualporindicador" &&
+    tablaSeleccionada != "responsablesporindicador" &&
+    tablaSeleccionada != "fuentesporindicador" &&
+    tablaSeleccionada != "variablesporindicador")
 {
     <h3>Eliminar Registro de @tablaSeleccionada</h3>
     @if (!string.IsNullOrEmpty(tablaSeleccionada))
@@ -430,8 +254,12 @@
     }
 }
 
-<!-- Panel de modificación -->
-@if (selectedOperation == "modificar")
+@* Panel de modificación *@
+@if (selectedOperation == "modificar" &&
+    tablaSeleccionada != "represenvisualporindicador" &&
+    tablaSeleccionada != "responsablesporindicador" &&
+    tablaSeleccionada != "fuentesporindicador" &&
+    tablaSeleccionada != "variablesporindicador")
 {
     <h3>Modificar Registro en @tablaSeleccionada</h3>
     @if (!string.IsNullOrEmpty(tablaSeleccionada))
@@ -520,8 +348,7 @@
                                     }
                                 </select>
                             }
-                            // --- CAMPOS CON FILTRADO DEPENDIENTE (MODIFICACIÓN) ---
-                            else if (columna == "fkidarticulo") // <-- CAMBIO AQUÍ
+                            else if (columna == "fkidarticulo")
                             {
                                 <select class="form-select"
                                         value="@registroActual[columna]"
@@ -536,7 +363,7 @@
                                     }
                                 </select>
                             }
-                            else if (columna == "fkidliteral") // <-- CAMBIO AQUÍ
+                            else if (columna == "fkidliteral")
                             {
                                 <select class="form-select"
                                         value="@registroActual[columna]"
@@ -573,198 +400,6 @@
                                         @foreach (var item in filteredParrafos)
                                         {
                                             <option value="@item["id"]">@item["descripcion"]</option>
-                                        }
-                                    }
-                                </select>
-                            }
-                            // --- FIN CAMPOS CON FILTRADO DEPENDIENTE (MODIFICACIÓN) ---
-                            else
-                            {
-                                <InputText class="form-control" @bind-Value="registroActual[columna]" />
-                            }
-                        }
-                        else if (tablaSeleccionada == "fuentesporindicador")
-                        {
-                            if (columna == "fkidfuente")
-                            {
-                                <select class="form-select" @bind="registroActual[columna]">
-                                    <option value="">-- Seleccione Fuente --</option>
-                                    @if (fuentes != null)
-                                    {
-                                        @foreach (var item in fuentes)
-                                        {
-                                            <option value="@item["id"]">@item["nombre"]</option>
-                                        }
-                                    }
-                                </select>
-                            }
-                            else if (columna == "fkidindicador")
-                            {
-                                <select class="form-select" @bind="registroActual[columna]">
-                                    <option value="">-- Seleccione Indicador --</option>
-                                    @if (indicadoresForFuentes != null)
-                                    {
-                                        @foreach (var item in indicadoresForFuentes)
-                                        {
-                                            <option value="@item["id"]">@item["nombre"]</option>
-                                        }
-                                    }
-                                </select>
-                            }
-                            else
-                            {
-                                <InputText class="form-control" @bind-Value="registroActual[columna]" />
-                            }
-                        }
-                        else if (tablaSeleccionada == "represenvisualporindicador")
-                        {
-                            if (columna == "fkidindicador")
-                            {
-                                <select class="form-select" @bind="registroActual[columna]">
-                                    <option value="">-- Seleccione Indicador --</option>
-                                    @if (indicadoresForRepresen != null)
-                                    {
-                                        @foreach (var item in indicadoresForRepresen)
-                                        {
-                                            <option value="@item["id"]">@item["nombre"]</option>
-                                        }
-                                    }
-                                </select>
-                            }
-                            else if (columna == "fkidrepresenvisual")
-                            {
-                                <select class="form-select" @bind="registroActual[columna]">
-                                    <option value="">-- Seleccione Representación Visual --</option>
-                                    @if (represenVisuales != null)
-                                    {
-                                        @foreach (var item in represenVisuales)
-                                        {
-                                            <option value="@item["id"]">@item["nombre"]</option>
-                                        }
-                                    }
-                                </select>
-                            }
-                            else
-                            {
-                                <InputText class="form-control" @bind-Value="registroActual[columna]" />
-                            }
-                        }
-                        else if (tablaSeleccionada == "responsablesporindicador")
-                        {
-                            if (columna == "fkidresponsable")
-                            {
-                                <select class="form-select" @bind="registroActual[columna]">
-                                    <option value="">-- Seleccione Actor --</option>
-                                    @if (actores != null)
-                                    {
-                                        @foreach (var item in actores)
-                                        {
-                                            <option value="@item["id"]">@item["nombre"]</option>
-                                        }
-                                    }
-                                </select>
-                            }
-                            else if (columna == "fkidindicador")
-                            {
-                                <select class="form-select" @bind="registroActual[columna]">
-                                    <option value="">-- Seleccione Indicador --</option>
-                                    @if (indicadoresForResponsables != null)
-                                    {
-                                        @foreach (var item in indicadoresForResponsables)
-                                        {
-                                            <option value="@item["id"]">@item["nombre"]</option>
-                                        }
-                                    }
-                                </select>
-                            }
-                            else
-                            {
-                                <InputText class="form-control" @bind-Value="registroActual[columna]" />
-                            }
-                        }
-                        else if (tablaSeleccionada == "rol_usuario")
-                        {
-                            if (columna == "fkemail")
-                            {
-                                <select class="form-select" @bind="registroActual[columna]">
-                                    <option value="">-- Seleccione Usuario --</option>
-                                    @if (usuarios != null)
-                                    {
-                                        @foreach (var item in usuarios)
-                                        {
-                                            <option value="@item["email"]">@item["email"]</option>
-                                        }
-                                    }
-                                </select>
-                            }
-                            else if (columna == "fkidrol")
-                            {
-                                <select class="form-select" @bind="registroActual[columna]">
-                                    <option value="">-- Seleccione Rol --</option>
-                                    @if (roles != null)
-                                    {
-                                        @foreach (var item in roles)
-                                        {
-                                            <option value="@item["id"]">@item["nombre"]</option>
-                                        }
-                                    }
-                                </select>
-                            }
-                            else
-                            {
-                                <InputText class="form-control" @bind-Value="registroActual[columna]" />
-                            }
-                        }
-                        else if (tablaSeleccionada == "variable" && columna == "fkemailusuario")
-                        {
-                            <select class="form-select" @bind="registroActual[columna]">
-                                <option value="">-- Seleccione Usuario --</option>
-                                @if (usuarios != null)
-                                {
-                                    @foreach (var item in usuarios)
-                                    {
-                                        <option value="@item["email"]">@item["email"]</option>
-                                    }
-                                }
-                            </select>
-                        }
-                        else if (tablaSeleccionada == "variablesporindicador")
-                        {
-                            if (columna == "fkidvariable")
-                            {
-                                <select class="form-select" @bind="registroActual[columna]">
-                                    <option value="">-- Seleccione Variable --</option>
-                                    @if (variablesForVarPorIndicador != null)
-                                    {
-                                        @foreach (var item in variablesForVarPorIndicador)
-                                        {
-                                            <option value="@item["id"]">@item["nombre"]</option>
-                                        }
-                                    }
-                                </select>
-                            }
-                            else if (columna == "fkidindicador")
-                            {
-                                <select class="form-select" @bind="registroActual[columna]">
-                                    <option value="">-- Seleccione Indicador --</option>
-                                    @if (indicadoresForVarPorIndicador != null)
-                                    {
-                                        @foreach (var item in indicadoresForVarPorIndicador)
-                                        {
-                                            <option value="@item["id"]">@item["nombre"]</option>
-                                        }
-                                    }
-                                </select>
-                            }
-                            else if (columna == "fkemailusuario")
-                            {
-                                <select class="form-select" @bind="registroActual[columna]">
-                                    <option value="">-- Seleccione Usuario --</option>
-                                    @if (usuarios != null)
-                                    {
-                                        @foreach (var item in usuarios)
-                                        {
-                                            <option value="@item["email"]">@item["email"]</option>
                                         }
                                     }
                                 </select>
@@ -873,15 +508,11 @@
     private List<Dictionary<string, object>> filteredNumerales = new();
     private List<Dictionary<string, object>> filteredParrafos = new();
 
-    // Para fuentesporindicador.
+    // Para tablas de solo lectura.
     private List<Dictionary<string, object>>? fuentes;
     private List<Dictionary<string, object>>? indicadoresForFuentes;
-
-    // Para represenvisualporindicador.
     private List<Dictionary<string, object>>? indicadoresForRepresen;
     private List<Dictionary<string, object>>? represenVisuales;
-
-    // Para responsablesporindicador.
     private List<Dictionary<string, object>>? actores;
     private List<Dictionary<string, object>>? indicadoresForResponsables;
 
@@ -889,7 +520,7 @@
     private List<Dictionary<string, object>>? usuarios;
     private List<Dictionary<string, object>>? roles;
 
-    // Para variablesporindicador.
+    // Para variablesporindicador (solo lectura).
     private List<Dictionary<string, object>>? variablesForVarPorIndicador;
     private List<Dictionary<string, object>>? indicadoresForVarPorIndicador;
 
@@ -934,21 +565,6 @@
                 numerales = await servicioEntidad.ObtenerTodosAsync("NombreProyecto", "numeral");
                 parrafos = await servicioEntidad.ObtenerTodosAsync("NombreProyecto", "paragrafo");
             }
-            else if (tablaSeleccionada == "fuentesporindicador")
-            {
-                fuentes = await servicioEntidad.ObtenerTodosAsync("NombreProyecto", "fuente");
-                indicadoresForFuentes = await servicioEntidad.ObtenerTodosAsync("NombreProyecto", "indicador");
-            }
-            else if (tablaSeleccionada == "represenvisualporindicador")
-            {
-                indicadoresForRepresen = await servicioEntidad.ObtenerTodosAsync("NombreProyecto", "indicador");
-                represenVisuales = await servicioEntidad.ObtenerTodosAsync("NombreProyecto", "represenvisual");
-            }
-            else if (tablaSeleccionada == "responsablesporindicador")
-            {
-                actores = await servicioEntidad.ObtenerTodosAsync("NombreProyecto", "actor");
-                indicadoresForResponsables = await servicioEntidad.ObtenerTodosAsync("NombreProyecto", "indicador");
-            }
             else if (tablaSeleccionada == "rol_usuario")
             {
                 usuarios = await servicioEntidad.ObtenerTodosAsync("NombreProyecto", "usuario");
@@ -958,15 +574,8 @@
             {
                 usuarios = await servicioEntidad.ObtenerTodosAsync("NombreProyecto", "usuario");
             }
-            else if (tablaSeleccionada == "variablesporindicador")
-            {
-                variablesForVarPorIndicador = await servicioEntidad.ObtenerTodosAsync("NombreProyecto", "variable");
-                indicadoresForVarPorIndicador = await servicioEntidad.ObtenerTodosAsync("NombreProyecto", "indicador");
-                usuarios = await servicioEntidad.ObtenerTodosAsync("NombreProyecto", "usuario");
-            }
             else
             {
-                // Limpiar listas para tablas que no requieran estas relaciones.
                 tiposActor = null;
                 tipoIndicadores = null;
                 unidadMedicion = null;
@@ -982,8 +591,6 @@
                 represenVisuales = null;
                 actores = null;
                 indicadoresForResponsables = null;
-                usuarios = null;
-                roles = null;
                 variablesForVarPorIndicador = null;
                 indicadoresForVarPorIndicador = null;
             }
@@ -1001,6 +608,16 @@
 
     private void SeleccionarOperacion(string operacion)
     {
+        if (tablaSeleccionada == "represenvisualporindicador" ||
+            tablaSeleccionada == "responsablesporindicador" ||
+            tablaSeleccionada == "fuentesporindicador" ||
+            tablaSeleccionada == "variablesporindicador")
+        {
+            mensaje = "Operación no permitida para la tabla seleccionada.";
+            selectedOperation = null;
+            return;
+        }
+
         selectedOperation = operacion;
         mensaje = null;
 
@@ -1023,30 +640,24 @@
         }
     }
 
-    // ---------------------------
     // MÉTODOS DE FILTRADO (CREAR)
-    // ---------------------------
     private void OnArticuloChangedCrear(ChangeEventArgs e)
     {
         var selectedArticulo = e.Value?.ToString() ?? "";
         nuevoRegistro["fkidarticulo"] = selectedArticulo;
 
-        // Filtrar literales
         filteredLiterales = string.IsNullOrEmpty(selectedArticulo) || literales == null
             ? new List<Dictionary<string, object>>()
             : literales.Where(l => l["fkidarticulo"]?.ToString() == selectedArticulo).ToList();
 
-        // Filtrar parrafos
         filteredParrafos = string.IsNullOrEmpty(selectedArticulo) || parrafos == null
             ? new List<Dictionary<string, object>>()
             : parrafos.Where(p => p["fkidarticulo"]?.ToString() == selectedArticulo).ToList();
 
-        // Reiniciar campos dependientes
-        nuevoRegistro["fkidliteral"] = "";
-        nuevoRegistro["fkidnumeral"] = "";
-        nuevoRegistro["fkidparagrafo"] = "";
+        nuevoRegistro["fkidliteral"] = null;
+        nuevoRegistro["fkidnumeral"] = null;
+        nuevoRegistro["fkidparagrafo"] = null;
 
-        // Reiniciar numerales
         filteredNumerales.Clear();
     }
 
@@ -1055,18 +666,14 @@
         var selectedLiteral = e.Value?.ToString() ?? "";
         nuevoRegistro["fkidliteral"] = selectedLiteral;
 
-        // Filtrar numerales asociados al literal
         filteredNumerales = string.IsNullOrEmpty(selectedLiteral) || numerales == null
             ? new List<Dictionary<string, object>>()
             : numerales.Where(n => n["fkidliteral"]?.ToString() == selectedLiteral).ToList();
 
-        // Reiniciar numeral
         nuevoRegistro["fkidnumeral"] = "";
     }
 
-    // ------------------------------
     // MÉTODOS DE FILTRADO (MODIFICAR)
-    // ------------------------------
     private void OnArticuloChangedModificar(ChangeEventArgs e)
     {
         var selectedArticulo = e.Value?.ToString() ?? "";
@@ -1109,9 +716,19 @@
 
         var registroObjeto = nuevoRegistro.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
 
+        // Si la tabla tiene un campo autoincremental, eliminamos la clave primaria.
         if (_tablasAutoIncrementales.Contains(tablaSeleccionada))
         {
             registroObjeto.Remove(clavesPrimarias[tablaSeleccionada]);
+        }
+
+        // Para los campos opcionales: si el valor es cadena vacía, eliminamos el campo para que no se envíe.
+        foreach (var campo in new[] { "fkidarticulo", "fkidliteral", "fkidnumeral", "fkidparagrafo" })
+        {
+            if (registroObjeto.ContainsKey(campo) && string.IsNullOrWhiteSpace(registroObjeto[campo]?.ToString()))
+            {
+                registroObjeto.Remove(campo);
+            }
         }
 
         bool resultado = await servicioEntidad.CrearAsync("NombreProyecto", tablaSeleccionada, registroObjeto);
@@ -1173,7 +790,6 @@
             registroCargado = true;
             mensaje = "Registro cargado correctamente.";
 
-            // Si ya existe un artículo asignado, filtrar literales y párrafos
             if (tablaSeleccionada == "indicador" && registroActual.ContainsKey("fkidarticulo"))
             {
                 string artSel = registroActual["fkidarticulo"];
@@ -1185,7 +801,6 @@
                     ? new List<Dictionary<string, object>>()
                     : parrafos.Where(p => p["fkidarticulo"]?.ToString() == artSel).ToList();
             }
-            // Si ya existe un literal asignado, filtrar numerales
             if (tablaSeleccionada == "indicador" && registroActual.ContainsKey("fkidliteral"))
             {
                 string litSel = registroActual["fkidliteral"];
@@ -1207,6 +822,12 @@
         if (!registroCargado)
         {
             mensaje = "No se ha cargado ningún registro para modificar.";
+            return;
+        }
+
+        if (string.IsNullOrEmpty(tablaSeleccionada))
+        {
+            mensaje = "No se ha seleccionado ninguna tabla.";
             return;
         }
         var datosActualizados = registroActual.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
