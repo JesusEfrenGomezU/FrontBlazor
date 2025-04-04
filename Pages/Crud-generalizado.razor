@@ -4,7 +4,7 @@
 
 <h1>CRUD Generalizado</h1>
 
-<!-- Selección de tabla -->
+<!--INICIA Selección de tabla -->
 <div class="mb-3">
     <label for="tablaSeleccion" class="form-label">Selecciona una tabla:</label>
     <select id="tablaSeleccion" class="form-select" @onchange="OnTablaChanged">
@@ -15,8 +15,10 @@
         }
     </select>
 </div>
+<!--TERMINA Selección de tabla -->
 
-<!-- Sección de lectura -->
+<!--Muestra el contenido de la tabla en la parte superior -->
+<!--INICIA Sección de lectura -->
 @if (!string.IsNullOrEmpty(tablaSeleccionada))
 {
     <h2>Contenido de la tabla: @tablaSeleccionada</h2>
@@ -53,7 +55,9 @@
         </table>
     }
 }
+<!--TERMINA Sección de lectura -->
 
+<!--INICIA Valor a la variable de Seleccion -->
 @if (!string.IsNullOrEmpty(tablaSeleccionada) &&
     tablaSeleccionada != "represenvisualporindicador" &&
     tablaSeleccionada != "responsablesporindicador" &&
@@ -75,13 +79,10 @@
 {
     <div class="alert alert-info">@mensaje</div>
 }
+<!--TERMINA Valor a la variable de Seleccion -->
 
-@* Panel de creación: solo se muestra para tablas que permiten operaciones (no para las de solo lectura) *@
-@if (selectedOperation == "crear" &&
-    tablaSeleccionada != "represenvisualporindicador" &&
-    tablaSeleccionada != "responsablesporindicador" &&
-    tablaSeleccionada != "fuentesporindicador" &&
-    tablaSeleccionada != "variablesporindicador")
+@* INICIA Panel de creación: solo se muestra para tablas que permiten operaciones (no para las de solo lectura) *@
+@if (selectedOperation == "crear")
 {
     <h3>Crear Registro en @tablaSeleccionada</h3>
     @if (!string.IsNullOrEmpty(tablaSeleccionada))
@@ -237,11 +238,7 @@
 }
 
 @* Panel de eliminación *@
-@if (selectedOperation == "eliminar" &&
-    tablaSeleccionada != "represenvisualporindicador" &&
-    tablaSeleccionada != "responsablesporindicador" &&
-    tablaSeleccionada != "fuentesporindicador" &&
-    tablaSeleccionada != "variablesporindicador")
+@if (selectedOperation == "eliminar")
 {
     <h3>Eliminar Registro de @tablaSeleccionada</h3>
     @if (!string.IsNullOrEmpty(tablaSeleccionada))
@@ -255,11 +252,7 @@
 }
 
 @* Panel de modificación *@
-@if (selectedOperation == "modificar" &&
-    tablaSeleccionada != "represenvisualporindicador" &&
-    tablaSeleccionada != "responsablesporindicador" &&
-    tablaSeleccionada != "fuentesporindicador" &&
-    tablaSeleccionada != "variablesporindicador")
+@if (selectedOperation == "modificar")
 {
     <h3>Modificar Registro en @tablaSeleccionada</h3>
     @if (!string.IsNullOrEmpty(tablaSeleccionada))
@@ -420,6 +413,7 @@
         }
     }
 }
+<!--TERMINA Panel de creacion -->
 
 @code {
     // Listado de tablas
@@ -654,9 +648,9 @@
             ? new List<Dictionary<string, object>>()
             : parrafos.Where(p => p["fkidarticulo"]?.ToString() == selectedArticulo).ToList();
 
-        nuevoRegistro["fkidliteral"] = null;
-        nuevoRegistro["fkidnumeral"] = null;
-        nuevoRegistro["fkidparagrafo"] = null;
+        nuevoRegistro["fkidliteral"] = "";
+        nuevoRegistro["fkidnumeral"] = "";
+        nuevoRegistro["fkidparagrafo"] = "";
 
         filteredNumerales.Clear();
     }
