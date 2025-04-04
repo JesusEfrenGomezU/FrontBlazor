@@ -169,7 +169,7 @@
                             <select class="form-select"
                                     value="@nuevoRegistro[columna]"
                                     @onchange="OnArticuloChangedCrear">
-                                <option value="">No Aplica</option>
+                                <option value="">-- Seleccione Articulo --</option>
                                 @if (articulos != null)
                                 {
                                     @foreach (var item in articulos)
@@ -184,7 +184,7 @@
                             <select class="form-select"
                                     value="@nuevoRegistro[columna]"
                                     @onchange="OnLiteralChangedCrear">
-                                <option value="">No Aplica</option>
+                                <option value="">-- Seleccione Literal --</option>
                                 @if (filteredLiterales != null)
                                 {
                                     @foreach (var item in filteredLiterales)
@@ -197,7 +197,7 @@
                         else if (columna == "fkidnumeral")
                         {
                             <select class="form-select" @bind="nuevoRegistro[columna]">
-                                <option value="">No Aplica</option>
+                                <option value="">-- Seleccione Numeral --</option>
                                 @if (filteredNumerales != null)
                                 {
                                     @foreach (var item in filteredNumerales)
@@ -210,7 +210,7 @@
                         else if (columna == "fkidparagrafo")
                         {
                             <select class="form-select" @bind="nuevoRegistro[columna]">
-                                <option value="">No Aplica</option>
+                                <option value="">-- Seleccione Paragrafo --</option>
                                 @if (filteredParrafos != null)
                                 {
                                     @foreach (var item in filteredParrafos)
@@ -353,7 +353,7 @@
                                 <select class="form-select"
                                         value="@registroActual[columna]"
                                         @onchange="OnArticuloChangedModificar">
-                                    <option value="">No Aplica</option>
+                                    <option value="">-- Seleccione Articulo --</option>
                                     @if (articulos != null)
                                     {
                                         @foreach (var item in articulos)
@@ -368,7 +368,7 @@
                                 <select class="form-select"
                                         value="@registroActual[columna]"
                                         @onchange="OnLiteralChangedModificar">
-                                    <option value="">No Aplica</option>
+                                    <option value="">-- Seleccione literal --</option>
                                     @if (filteredLiterales != null)
                                     {
                                         @foreach (var item in filteredLiterales)
@@ -381,7 +381,7 @@
                             else if (columna == "fkidnumeral")
                             {
                                 <select class="form-select" @bind="registroActual[columna]">
-                                    <option value="">No Aplica</option>
+                                    <option value="">-- Seleccione Numeral --</option>
                                     @if (filteredNumerales != null)
                                     {
                                         @foreach (var item in filteredNumerales)
@@ -394,7 +394,7 @@
                             else if (columna == "fkidparagrafo")
                             {
                                 <select class="form-select" @bind="registroActual[columna]">
-                                    <option value="">No Aplica</option>
+                                    <option value="">-- Selecciones Paragrafo --</option>
                                     @if (filteredParrafos != null)
                                     {
                                         @foreach (var item in filteredParrafos)
