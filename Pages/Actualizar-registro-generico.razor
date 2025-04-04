@@ -25,6 +25,7 @@
     <button class="btn btn-secondary" @onclick="CargarRegistro">Cargar Registro</button>
 }
 
+<!-- Crea los campos a actualizar -->
 @if (registroCargado)
 {
     <h2>Modificar registro en la tabla: @tablaSeleccionada</h2>
@@ -33,9 +34,9 @@
         {
             <div class="mb-3">
                 <label>@columna</label>
-                @if (columna == "id")
+                @if (columna == clavesPrimarias[tablaSeleccionada])
                 {
-                    <!-- Campo deshabilitado para evitar modificar la clave primaria -->
+                    <!-- clave primaria -->
                     <InputText class="form-control" @bind-Value="registroActual[columna]" disabled />
                 }
                 else
@@ -44,10 +45,12 @@
                 }
             </div>
         }
+        
         <button type="submit" class="btn btn-primary">Modificar</button>
     </EditForm>
 }
 
+<!-- Muestra mensajes del estado del Booststrap -->
 @if (!string.IsNullOrWhiteSpace(mensaje))
 {
     <div class="alert alert-info mt-3">@mensaje</div>
@@ -65,7 +68,15 @@
         { "represenvisualporindicador", new List<string> { "fkidindicador", "fkidrepresenvisual" } },
         { "responsablesporindicador", new List<string> { "fkidresponsable", "fkidindicador", "fechaasignacion" } },
         { "rol_usuario", new List<string> { "fkemail", "fkidrol" } },
-        { "variablesporindicador", new List<string> { "id", "fkidvariable", "fkidindicador", "dato", "fkemailusuario", "fechadato" } }
+        { "variablesporindicador", new List<string> { "id", "fkidvariable", "fkidindicador", "dato", "fkemailusuario", "fechadato" } },
+        { "tipoindicador", new List<string> { "id", "nombre" } },
+        { "unidadmedicion", new List<string> { "id", "descripcion" } },
+        { "sentido", new List<string> { "id", "nombre" } },
+        { "fuente", new List<string> { "id", "nombre" } },
+        { "represenvisual", new List<string> { "id", "nombre" } },
+        { "tipoactor", new List<string> { "id", "nombre" } },
+        { "usuario", new List<string> { "email", "contrasena" } },
+        { "rol", new List<string> { "id", "nombre" } }   
     };
 
     // Tabla seleccionada en el desplegable
@@ -102,17 +113,19 @@
             return;
         }
 
-        var resultado = await servicioEntidad.ObtenerPorClaveAsync("NombreProyecto", tablaSeleccionada, "id", registroId);
+        // Obtener la clave primaria según la tabla seleccionada
+        var clavePrimaria = clavesPrimarias[tablaSeleccionada];
+
+        var resultado = await servicioEntidad.ObtenerPorClaveAsync("NombreProyecto", tablaSeleccionada, clavePrimaria, registroId);
         if (resultado != null)
         {
-            // Convertir cada valor a string para el binding
             registroActual = resultado.ToDictionary(kvp => kvp.Key, kvp => kvp.Value?.ToString() ?? string.Empty);
             registroCargado = true;
             mensaje = "Registro cargado correctamente.";
         }
         else
         {
-            mensaje = $"No se encontró el registro con ID {registroId} en la tabla {tablaSeleccionada}.";
+            mensaje = $"No se encontró el registro con {clavePrimaria} {registroId} en la tabla {tablaSeleccionada}.";
             registroCargado = false;
             registroActual.Clear();
         }
@@ -129,14 +142,30 @@
 
         // Convertir el registro actual a Dictionary<string, object>
         var datosActualizados = registroActual.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
-        bool resultado = await servicioEntidad.ActualizarAsync("NombreProyecto", tablaSeleccionada!, "id", registroId, datosActualizados);
-        if (resultado)
-        {
-            mensaje = "Registro actualizado exitosamente.";
-        }
-        else
-        {
-            mensaje = "Ocurrió un error al actualizar el registro.";
-        }
+        var clavePrimaria = clavesPrimarias[tablaSeleccionada!];
+        bool resultado = await servicioEntidad.ActualizarAsync("FrontBlazor", tablaSeleccionada!, clavePrimaria, registroId, datosActualizados);
+        mensaje = resultado ? "Registro actualizado exitosamente." : "Ocurrió un error al actualizar el registro.";
     }
+
+    private Dictionary<string, string> clavesPrimarias = new()
+    {
+        { "actor", "id" },
+        { "indicador", "id" },
+        { "resultadoindicador", "id" },
+        { "variable", "id" },
+        { "fuentesporindicador", "fkidfuente" },
+        { "represenvisualporindicador", "fkidindicador" },
+        { "responsablesporindicador", "fkidindicador" },
+        { "rol_usuario", "fkemail" },
+        { "variablesporindicador", "id" },
+        { "tipoindicador", "id" },
+        { "unidadmedicion", "id" },
+        { "sentido", "id" },
+        { "fuente", "id" },
+        { "represenvisual", "id" },
+        { "tipoactor", "id" },
+        { "usuario", "email" },
+        { "rol", "id" }
+    };
+
 }

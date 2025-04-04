@@ -37,7 +37,31 @@
     private List<string> tablasDisponibles = new List<string>
     {
         "actor", "indicador", "resultadoindicador", "variable", "fuentesporindicador",
-        "represenvisualporindicador", "responsablesporindicador", "rol_usuario", "variablesporindicador"
+        "represenvisualporindicador", "responsablesporindicador", "rol_usuario", 
+        "variablesporindicador", "tipoindicador", "unidadmedicion", "sentido", "fuente", 
+        "represenvisual", "tipoactor", "usuario", "rol"
+    };
+
+    // Diccionario que mapea el nombre de la tabla a su clave primaria
+    private Dictionary<string, string> clavesPrimarias = new()
+    {
+        { "actor", "id" },
+        { "indicador", "id" },
+        { "resultadoindicador", "id" },
+        { "variable", "id" },
+        { "fuentesporindicador", "fkidfuente" },
+        { "represenvisualporindicador", "fkidindicador" },
+        { "responsablesporindicador", "fkidindicador" },
+        { "rol_usuario", "fkemail" },
+        { "variablesporindicador", "id" },
+        { "tipoindicador", "id" },
+        { "unidadmedicion", "id" },
+        { "sentido", "id" },
+        { "fuente", "id" },
+        { "represenvisual", "id" },
+        { "tipoactor", "id" },
+        { "usuario", "email" },
+        { "rol", "id" }
     };
 
     // Tabla seleccionada en el desplegable
@@ -69,11 +93,13 @@
             return;
         }
 
-        // Se asume que la clave primaria se llama "id"
-        bool resultado = await servicioEntidad.EliminarAsync("NombreProyecto", tablaSeleccionada, "id", registroId);
+        // Obtener la clave primaria de la tabla seleccionada
+        var clavePrimaria = clavesPrimarias[tablaSeleccionada];
+
+        bool resultado = await servicioEntidad.EliminarAsync("NombreProyecto", tablaSeleccionada, clavePrimaria, registroId);
         if (resultado)
         {
-            mensaje = $"Registro con ID {registroId} eliminado de la tabla {tablaSeleccionada} exitosamente.";
+            mensaje = $"Registro con {clavePrimaria} {registroId} eliminado de la tabla {tablaSeleccionada} exitosamente.";
         }
         else
         {

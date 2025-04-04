@@ -1,0 +1,331 @@
+@page "/procedimientos"
+@using System.Collections.Generic
+@using System.Threading.Tasks
+@using System.Linq
+@inject FrontBlazor.Services.ServicioEntidad servicioEntidad
+@inject NavigationManager NavigationManager
+
+<h1>Procedimientos Especiales</h1>
+
+
+@if (selectedProcedure == null)
+{
+    <div class="mb-3">
+        <button class="btn btn-primary me-2" @onclick="ShowRepresenVisualPorIndicador">Crear RepresenVisualPorIndicador</button>
+        <button class="btn btn-primary me-2" @onclick="ShowResponsablesPorIndicador">Crear ResponsablesPorIndicador</button>
+        <button class="btn btn-primary me-2" @onclick="ShowFuentesPorIndicador">Crear FuentesPorIndicador</button>
+        <button class="btn btn-primary" @onclick="ShowVariablesPorIndicador">Crear VariablesPorIndicador</button>
+    </div>
+}
+else
+{
+    @if (selectedProcedure == "represenvisualporindicador")
+    {
+        <h3>Crear Registro en RepresenVisualPorIndicador</h3>
+        <EditForm Model="@represenModel" OnValidSubmit="SubmitRepresenVisualPorIndicador">
+            <div class="mb-3">
+                <label>Indicador</label>
+                <select class="form-select" @bind="represenModel.fkidindicador">
+                    <option value="">-- Seleccione Indicador --</option>
+                    @if (indicadores != null)
+                    {
+                        @foreach (var ind in indicadores)
+                        {
+                            <option value="@ind["id"]">@ind["nombre"]</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="mb-3">
+                <label>Representación Visual</label>
+                <select class="form-select" @bind="represenModel.fkidrepresenvisual">
+                    <option value="">-- Seleccione Representación Visual --</option>
+                    @if (represenVisuales != null)
+                    {
+                        @foreach (var rv in represenVisuales)
+                        {
+                            <option value="@rv["id"]">@rv["nombre"]</option>
+                        }
+                    }
+                </select>
+            </div>
+            <button type="submit" class="btn btn-success me-2">Crear</button>
+            <button type="button" class="btn btn-secondary" @onclick="GoBack">Regresar</button>
+        </EditForm>
+    }
+    else if (selectedProcedure == "responsablesporindicador")
+    {
+        <h3>Crear Registro en ResponsablesPorIndicador</h3>
+        <EditForm Model="@responsablesModel" OnValidSubmit="SubmitResponsablesPorIndicador">
+            <div class="mb-3">
+                <label>Responsable (Actor)</label>
+                <select class="form-select" @bind="responsablesModel.fkidresponsable">
+                    <option value="">-- Seleccione Responsable --</option>
+                    @if (actores != null)
+                    {
+                        @foreach (var actor in actores)
+                        {
+                            <option value="@actor["id"]">@actor["nombre"]</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="mb-3">
+                <label>Indicador</label>
+                <select class="form-select" @bind="responsablesModel.fkidindicador">
+                    <option value="">-- Seleccione Indicador --</option>
+                    @if (indicadores != null)
+                    {
+                        @foreach (var ind in indicadores)
+                        {
+                            <option value="@ind["id"]">@ind["nombre"]</option>
+                        }
+                    }
+                </select>
+            </div>
+            <button type="submit" class="btn btn-success me-2">Crear</button>
+            <button type="button" class="btn btn-secondary" @onclick="GoBack">Regresar</button>
+        </EditForm>
+    }
+    else if (selectedProcedure == "fuentesporindicador")
+    {
+        <h3>Crear Registro en FuentesPorIndicador</h3>
+        <EditForm Model="@fuentesModel" OnValidSubmit="SubmitFuentesPorIndicador">
+            <div class="mb-3">
+                <label>Fuente</label>
+                <select class="form-select" @bind="fuentesModel.fkidfuente">
+                    <option value="">-- Seleccione Fuente --</option>
+                    @if (fuentes != null)
+                    {
+                        @foreach (var f in fuentes)
+                        {
+                            <option value="@f["id"]">@f["nombre"]</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="mb-3">
+                <label>Indicador</label>
+                <select class="form-select" @bind="fuentesModel.fkidindicador">
+                    <option value="">-- Seleccione Indicador --</option>
+                    @if (indicadores != null)
+                    {
+                        @foreach (var ind in indicadores)
+                        {
+                            <option value="@ind["id"]">@ind["nombre"]</option>
+                        }
+                    }
+                </select>
+            </div>
+            <button type="submit" class="btn btn-success me-2">Crear</button>
+            <button type="button" class="btn btn-secondary" @onclick="GoBack">Regresar</button>
+        </EditForm>
+    }
+    else if (selectedProcedure == "variablesporindicador")
+    {
+        <h3>Crear Registro en VariablesPorIndicador</h3>
+        <EditForm Model="@variablesModel" OnValidSubmit="SubmitVariablesPorIndicador">
+            <div class="mb-3">
+                <label>Variable</label>
+                <select class="form-select" @bind="variablesModel.fkidvariable">
+                    <option value="">-- Seleccione Variable --</option>
+                    @if (variables != null)
+                    {
+                        @foreach (var v in variables)
+                        {
+                            <option value="@v["id"]">@v["nombre"]</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="mb-3">
+                <label>Indicador</label>
+                <select class="form-select" @bind="variablesModel.fkidindicador">
+                    <option value="">-- Seleccione Indicador --</option>
+                    @if (indicadores != null)
+                    {
+                        @foreach (var ind in indicadores)
+                        {
+                            <option value="@ind["id"]">@ind["nombre"]</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="mb-3">
+                <label>Dato</label>
+                <InputNumber class="form-control" @bind-Value="variablesModel.dato" />
+            </div>
+            <div class="mb-3">
+                <label>Email Usuario</label>
+                <select class="form-select" @bind="variablesModel.fkemailusuario">
+                    <option value="">-- Seleccione Usuario --</option>
+                    @if (usuarios != null)
+                    {
+                        @foreach (var usr in usuarios)
+                        {
+                            <option value="@usr["email"]">@usr["email"]</option>
+                        }
+                    }
+                </select>
+            </div>
+            <button type="submit" class="btn btn-success me-2">Crear</button>
+            <button type="button" class="btn btn-secondary" @onclick="GoBack">Regresar</button>
+        </EditForm>
+    }
+}
+
+<div class="container-fluid mt-3 text-start">
+    <button class="btn btn-secondary" @onclick="Regresar">Regresar al menu principal</button>
+</div>
+
+
+
+@code {
+    // Variable que indica qué procedimiento se seleccionó (null = menú principal)
+    private string? selectedProcedure = null;
+
+    // Colecciones para llenar los desplegables
+    private List<Dictionary<string, object>>? indicadores;
+    private List<Dictionary<string, object>>? represenVisuales;
+    private List<Dictionary<string, object>>? actores;
+    private List<Dictionary<string, object>>? fuentes;
+    private List<Dictionary<string, object>>? variables;
+    private List<Dictionary<string, object>>? usuarios;
+
+    // Modelos para cada formulario de procedimiento
+    private RepresenModel represenModel = new();
+    private ResponsablesModel responsablesModel = new();
+    private FuentesModel fuentesModel = new();
+    private VariablesModel variablesModel = new();
+    private void Regresar()
+    {
+        NavigationManager.NavigateTo("/crud-generalizado");
+    }
+
+    // Clases modelo (ajustar según los nombres de columnas en la BD)
+    public class RepresenModel
+    {
+        public int fkidindicador { get; set; }
+        public int fkidrepresenvisual { get; set; }
+    }
+    public class ResponsablesModel
+    {
+        public int fkidindicador { get; set; }
+        public string fkidresponsable { get; set; } = "";
+    }
+    public class FuentesModel
+    {
+        public int fkidindicador { get; set; }
+        public int fkidfuente { get; set; }
+    }
+    public class VariablesModel
+    {
+        public int fkidindicador { get; set; }
+        public int fkidvariable { get; set; }
+        public float dato { get; set; }
+        public string fkemailusuario { get; set; } = "";
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Cargar datos comunes para los desplegables desde las tablas
+        indicadores = await servicioEntidad.ObtenerTodosAsync("NombreProyecto", "indicador");
+        represenVisuales = await servicioEntidad.ObtenerTodosAsync("NombreProyecto", "represenvisual");
+        actores = await servicioEntidad.ObtenerTodosAsync("NombreProyecto", "actor");
+        fuentes = await servicioEntidad.ObtenerTodosAsync("NombreProyecto", "fuente");
+        variables = await servicioEntidad.ObtenerTodosAsync("NombreProyecto", "variable");
+        usuarios = await servicioEntidad.ObtenerTodosAsync("NombreProyecto", "usuario");
+    }
+
+    // Métodos para mostrar cada menú
+    private void ShowRepresenVisualPorIndicador() => selectedProcedure = "represenvisualporindicador";
+    private void ShowResponsablesPorIndicador() => selectedProcedure = "responsablesporindicador";
+    private void ShowFuentesPorIndicador() => selectedProcedure = "fuentesporindicador";
+    private void ShowVariablesPorIndicador() => selectedProcedure = "variablesporindicador";
+
+    // Método para volver al menú principal
+    private void GoBack() => selectedProcedure = null;
+
+    // Métodos para ejecutar los SP
+    private async Task SubmitRepresenVisualPorIndicador()
+    {
+        var parametros = new Dictionary<string, object>
+        {
+            { "fkidindicador", represenModel.fkidindicador },
+            { "fkidrepresenvisual", represenModel.fkidrepresenvisual }
+        };
+
+        var respuesta = await servicioEntidad.EjecutarProcedimientoAsync("NombreProyecto", "represenvisualporindicador", "sp_insertar_represenvisualporindicador", parametros);
+        if (respuesta != null)
+        {
+            Console.WriteLine("Registro creado exitosamente en represenvisualporindicador");
+        }
+        else
+        {
+            Console.WriteLine("Error al crear registro en represenvisualporindicador");
+        }
+        GoBack();
+    }
+
+    private async Task SubmitResponsablesPorIndicador()
+    {
+        var parametros = new Dictionary<string, object>
+        {
+            { "fkidindicador", responsablesModel.fkidindicador },
+            { "fkidresponsable", responsablesModel.fkidresponsable }
+        };
+
+        var respuesta = await servicioEntidad.EjecutarProcedimientoAsync("NombreProyecto", "responsablesporindicador", "sp_insertar_responsablesporindicador", parametros);
+        if (respuesta != null)
+        {
+            Console.WriteLine("Registro creado exitosamente en responsablesporindicador");
+        }
+        else
+        {
+            Console.WriteLine("Error al crear registro en responsablesporindicador");
+        }
+        GoBack();
+    }
+
+    private async Task SubmitFuentesPorIndicador()
+    {
+        var parametros = new Dictionary<string, object>
+        {
+            { "fkidindicador", fuentesModel.fkidindicador },
+            { "fkidfuente", fuentesModel.fkidfuente }
+        };
+
+        var respuesta = await servicioEntidad.EjecutarProcedimientoAsync("NombreProyecto", "fuentesporindicador", "sp_insertar_fuentesporindicador", parametros);
+        if (respuesta != null)
+        {
+            Console.WriteLine("Registro creado exitosamente en fuentesporindicador");
+        }
+        else
+        {
+            Console.WriteLine("Error al crear registro en fuentesporindicador");
+        }
+        GoBack();
+    }
+
+    private async Task SubmitVariablesPorIndicador()
+    {
+        var parametros = new Dictionary<string, object>
+        {
+            { "fkidindicador", variablesModel.fkidindicador },
+            { "fkidvariable", variablesModel.fkidvariable },
+            { "dato", variablesModel.dato },
+            { "fkemailusuario", variablesModel.fkemailusuario }
+        };
+
+        var respuesta = await servicioEntidad.EjecutarProcedimientoAsync("NombreProyecto", "variablesporindicador", "sp_insertar_variablesporindicador", parametros);
+        if (respuesta != null)
+        {
+            Console.WriteLine("Registro creado exitosamente en variablesporindicador");
+        }
+        else
+        {
+            Console.WriteLine("Error al crear registro en variablesporindicador");
+        }
+        GoBack();
+    }
+}
