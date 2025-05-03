@@ -1,0 +1,127 @@
+@page "/usuario"
+@using System.Collections.Generic  
+@using System.Text.Json  
+@using System.Threading.Tasks
+@using Services  
+@inject ServicioEntidad servicioEntidad  
+@inject NavigationManager navegacionManager  
+
+<PageTitle>Lista usuarios</PageTitle>
+
+<h1>usuarios</h1>
+
+<!-- Botón para crear un nuevo tipo de indicador -->  
+<button class="btn btn-success mb-3" @onclick="CrearTabla">  
+    <i class="bi bi-plus-lg"></i> Crear usuario
+</button>
+
+@if (cargando)
+{
+    <p><em>Cargando...</em></p>  
+}
+else if (tablas == null || tablas.Count == 0)
+{
+    <p>No hay usuarios disponibles.</p>  
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>email</th>
+                    <th>Nombre</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var tabla in tablas)
+                {
+                    <tr>
+                        <td>@ObtenerValor(tabla, "email")</td>
+                        <td>@ObtenerValor(tabla, "contrasena")</td>
+                        <td class="text-center" style="white-space: nowrap;">
+                            <div class="d-inline-flex">
+                                <button class="btn btn-primary btn-sm me-1" @onclick="() => EditarTabla(tabla)" title="Editar">
+                                    <i class="bi bi-pencil-fill"></i>
+                                </button>
+                                <button class="btn btn-danger btn-sm" @onclick="() => EliminarTabla(tabla)" title="Eliminar">
+                                    <i class="bi bi-trash-fill"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(errorMensaje))
+{
+    <div class="alert alert-danger">
+        Error: @errorMensaje
+    </div>
+}
+
+@code {
+    private List<Dictionary<string, object>> tablas = new();
+    private bool cargando = true;
+    private string? errorMensaje;
+
+    private const string PROYECTO = "proyecto";
+    private const string TABLA = "usuario";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarTabla();
+    }
+
+    private async Task CargarTabla()
+    {
+        cargando = true;
+        errorMensaje = null;
+        try
+        {
+            var resultado = await servicioEntidad.ObtenerTodosAsync(PROYECTO, TABLA);
+            tablas = resultado ?? new List<Dictionary<string, object>>();
+        }
+        catch (Exception ex)
+        {
+            errorMensaje = $"Error al cargar: {ex.Message}";
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private string ObtenerValor(Dictionary<string, object> dic, string clave)
+    {
+        return dic != null && dic.TryGetValue(clave, out var val) ? val?.ToString() ?? string.Empty : string.Empty;
+    }
+
+    private void CrearTabla()
+    {
+        navegacionManager.NavigateTo("/usuario/crear");
+    }
+
+    private void EditarTabla(Dictionary<string, object> tabla)
+    {
+        var id = ObtenerValor(tabla, "email");
+        navegacionManager.NavigateTo($"/usuario/editar/{id}");
+    }
+    private async void EliminarTabla(Dictionary<string, object> tabla)
+        {
+            var id = ObtenerValor(tabla, "email");
+            bool eliminado = await servicioEntidad.EliminarAsync(PROYECTO, TABLA, "email", id);
+            if (eliminado)
+            {
+                tablas.Remove(tabla); // Refresca la vista eliminando el ítem localmente
+            }
+            else
+            {
+                errorMensaje = $"No se pudo eliminar la fuente con ID {id}.";
+            }
+        }
+    
+}
