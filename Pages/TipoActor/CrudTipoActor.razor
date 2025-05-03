@@ -1,4 +1,4 @@
-@page "/tipoindicador"
+@page "/tipoactor"
 @using System.Collections.Generic  
 @using System.Text.Json  
 @using System.Threading.Tasks
@@ -8,11 +8,11 @@
 
 <PageTitle>Lista de Tipo indicador</PageTitle>
 
-<h1>Tipo indicador</h1>
+<h1>Tipo actor</h1>
 
 <!-- Botón para crear un nuevo tipo de indicador -->  
 <button class="btn btn-success mb-3" @onclick="CrearTabla">  
-    <i class="bi bi-plus-lg"></i> Crear Tipo Indicador  
+    <i class="bi bi-plus-lg"></i> Crear Tipo actor 
 </button>
 
 @if (cargando)
@@ -68,9 +68,10 @@ else
     private List<Dictionary<string, object>> tablas = new();
     private bool cargando = true;
     private string? errorMensaje;
+    private int? idActual;
 
     private const string PROYECTO = "proyecto";
-    private const string TABLA = "tipoindicador";
+    private const string TABLA = "tipoactor";
 
     protected override async Task OnInitializedAsync()
     {
@@ -103,20 +104,26 @@ else
 
     private void CrearTabla()
     {
-        navegacionManager.NavigateTo("/tipoindicador/crear");
+        navegacionManager.NavigateTo("/tipoactor/crear");
     }
 
     private void EditarTabla(Dictionary<string, object> tabla)
     {
         var id = ObtenerValor(tabla, "id");
-        navegacionManager.NavigateTo($"/tipoindicador/editar/{id}");
+        navegacionManager.NavigateTo($"/tipoactor/editar/{id}");
     }
-
-    private void EliminarTabla(Dictionary<string, object> tabla)
-    {
-        var id = ObtenerValor(tabla, "id");
-        // Lógica real de eliminación, si aplica:
-        //await servicioEntidad.EliminarAsync(PROYECTO, TABLA, id);
-        tablas.Remove(tabla);
-    }
+    private async void EliminarTabla(Dictionary<string, object> tabla)
+        {
+            var id = ObtenerValor(tabla, "id");
+            bool eliminado = await servicioEntidad.EliminarAsync(PROYECTO, TABLA, "id", id);
+            if (eliminado)
+            {
+                tablas.Remove(tabla); // Refresca la vista eliminando el ítem localmente
+            }
+            else
+            {
+                errorMensaje = $"No se pudo eliminar la fuente con ID {id}.";
+            }
+        }
+    
 }

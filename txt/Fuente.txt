@@ -1,3 +1,76 @@
+@page "/fuente/crear"
+@inject ServicioEntidad servicioEntidad
+@inject NavigationManager navegacionManager
+
+<h1>Crear Fuente</h1>
+
+<EditForm Model="@nuevaFuente" OnValidSubmit="GuardarFuente">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label for="nombre" class="form-label">Nombre:</label>
+        <InputText id="nombre" class="form-control" @bind-Value="nuevaFuente["nombre"]" />
+    </div>
+
+    <div class="mb-3">
+        <label for="fkidtipofuente" class="form-label">Tipo Fuente:</label>
+        <select id="fkidtipofuente" class="form-select" @bind="nuevaFuente["fkidtipofuente"]">
+            <option value="">-- Selecciona --</option>
+            @foreach (var tipo in listaTipoFuente)
+            {
+                <option value="@tipo["id"]">@tipo["nombre"]</option>
+            }
+        </select>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Guardar</button>
+    <button type="button" class="btn btn-secondary ms-2" @onclick="Cancelar">Cancelar</button>
+
+    @if (!string.IsNullOrWhiteSpace(mensaje))
+    {
+        <div class="alert alert-info mt-3">@mensaje</div>
+    }
+</EditForm>
+
+@code {
+    private Dictionary<string, object> nuevaFuente = new()
+    {
+        { "nombre", string.Empty },
+        { "fkidtipofuente", string.Empty }
+    };
+
+    private List<Dictionary<string, object>> listaTipoFuente = new();
+    private string? mensaje;
+
+    private const string PROYECTO = "proyecto";
+    private const string TABLA = "fuente";
+
+    protected override async Task OnInitializedAsync()
+    {
+        listaTipoFuente = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "tipofuente") ?? new();
+    }
+
+    private async Task GuardarFuente()
+    {
+        bool resultado = await servicioEntidad.CrearAsync(PROYECTO, TABLA, nuevaFuente);
+
+        if (resultado)
+        {
+            mensaje = "Fuente creada exitosamente.";
+            navegacionManager.NavigateTo("/fuente");
+        }
+        else
+        {
+            mensaje = "Error al crear la fuente.";
+        }
+    }
+
+    private void Cancelar()
+    {
+        navegacionManager.NavigateTo("/fuente");
+    }
+}
 @page "/fuente"
 @using System.Collections.Generic  
 @using System.Threading.Tasks
@@ -107,18 +180,9 @@ else
     {
         if (dic != null && dic.TryGetValue(clave, out var val))
         {
-            if (val == null)
-                return string.Empty;
-            if (val is int intVal && intVal == 0)
-                return string.Empty;
-            if (val is long longVal && longVal == 0)
-                return string.Empty;
-            if (val.ToString() == "0")
-                return string.Empty;
-
+            if (val == null || val.ToString() == "0") return string.Empty;
             return val.ToString() ?? string.Empty;
         }
-
         return string.Empty;
     }
 
@@ -144,9 +208,19 @@ else
         navegacionManager.NavigateTo($"/fuente/editar/{id}");
     }
 
-    private void EliminarFuente(Dictionary<string, object> tabla)
+    private async void EliminarFuente(Dictionary<string, object> tabla)
     {
         var id = ObtenerValor(tabla, "id");
-        tablas.Remove(tabla);
+        bool eliminado = await servicioEntidad.EliminarAsync(PROYECTO, TABLA, "id", id);
+        if (eliminado)
+        {
+            tablas.Remove(tabla); // Refresca la vista eliminando el ítem localmente
+        }
+        else
+        {
+            errorMensaje = $"No se pudo eliminar la fuente con ID {id}.";
+        }
     }
 }
+
+
