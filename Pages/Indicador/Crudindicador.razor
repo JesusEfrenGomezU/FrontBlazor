@@ -57,12 +57,12 @@ else
                         <td>@ObtenerValor(tabla, "objetivo")</td>
                         <td>@ObtenerValor(tabla, "alcance")</td>
                         <td>@ObtenerValor(tabla, "formula")</td>
-                        <td>@ObtenerDescripcion(listaTipoIndicador, ObtenerValor(tabla, "fkidtipoindicador"), "nombre")</td>
-                        <td>@ObtenerDescripcion(listaUnidadMedicion, ObtenerValor(tabla, "fkidunidadmedicion"), "descripcion")</td>
+                        <td>@ObtenerForanea(listaTipoIndicador, ObtenerValor(tabla, "fkidtipoindicador"), "nombre")</td>
+                        <td>@ObtenerForanea(listaUnidadMedicion, ObtenerValor(tabla, "fkidunidadmedicion"), "descripcion")</td>
                         <td>@ObtenerValor(tabla, "meta")</td>
                         <td>@ObtenerValor(tabla, "fkidsentido")</td>
-                        <td>@ObtenerDescripcion(listaFrecuencia, ObtenerValor(tabla, "fkidfrecuencia"), "nombre")</td>
-                        <td>@ObtenerDescripcion(listaArticulo, ObtenerValor(tabla, "fkidarticulo"), "nombre")</td>
+                        <td>@ObtenerForanea(listaFrecuencia, ObtenerValor(tabla, "fkidfrecuencia"), "nombre")</td>
+                        <td>@ObtenerForanea(listaArticulo, ObtenerValor(tabla, "fkidarticulo"), "nombre")</td>
                         <td>@ObtenerValor(tabla, "fkidliteral")</td>
                         <td>@ObtenerValor(tabla, "fkidnumeral")</td>
                         <td>@ObtenerValor(tabla, "fkidparagrafo")</td>
@@ -157,20 +157,20 @@ else
         return string.Empty;
     }
 
-    private string ObtenerDescripcion(List<Dictionary<string, object>> lista, string id, string campo)
+    private string ObtenerForanea(List<Dictionary<string, object>> lista, string id, string campo)
     {
         if (string.IsNullOrWhiteSpace(id)) return string.Empty;
 
         var item = lista.FirstOrDefault(x => x.TryGetValue("id", out var val) && val?.ToString() == id);
-        if (item != null && item.TryGetValue(campo, out var descripcion))
-            return descripcion?.ToString() ?? string.Empty;
+        if (item != null && item.TryGetValue(campo, out var foranea))
+            return foranea?.ToString() ?? string.Empty;
 
         return string.Empty;
     }
 
     private void CrearTabla()
     {
-        navegacionManager.NavigateTo("/tipoindicador/crear");
+        navegacionManager.NavigateTo("/indicador/crear");
     }
 
     private void EditarTabla(Dictionary<string, object> tabla)

@@ -1,16 +1,16 @@
-@page "/actor"
+@page "/fuente"
 @using System.Collections.Generic  
 @using System.Threading.Tasks
 @using Services  
 @inject ServicioEntidad servicioEntidad  
 @inject NavigationManager navegacionManager  
 
-<PageTitle>Lista de Actores</PageTitle>
+<PageTitle>Lista de Fuentes</PageTitle>
 
-<h1>Actores</h1>
+<h1>Fuentes</h1>
 
-<button class="btn btn-success mb-3" @onclick="CrearActor">  
-    <i class="bi bi-plus-lg"></i> Crear Actor  
+<button class="btn btn-success mb-3" @onclick="CrearFuente">  
+    <i class="bi bi-plus-lg"></i> Crear Fuente  
 </button>
 
 @if (cargando)
@@ -19,7 +19,7 @@
 }
 else if (tablas == null || tablas.Count == 0)
 {
-    <p>No hay actores disponibles.</p>  
+    <p>No hay fuentes disponibles.</p>  
 }
 else
 {
@@ -29,8 +29,6 @@ else
                 <tr>
                     <th>ID</th>
                     <th>Nombre</th>
-                    <th>Tipo Actor</th>
-                    <th class="text-center" style="white-space: nowrap;">Acciones</th>
                 </tr>
             </thead>
             <tbody>
@@ -39,13 +37,12 @@ else
                     <tr>
                         <td>@ObtenerValor(tabla, "id")</td>
                         <td>@ObtenerValor(tabla, "nombre")</td>
-                        <td>@ObtenerForanea(listaTipoActor, ObtenerValor(tabla, "fkidtipoactor"), "nombre")</td>
                         <td class="text-center" style="white-space: nowrap;">
                             <div class="d-inline-flex">
-                                <button class="btn btn-primary btn-sm me-1" @onclick="() => EditarActor(tabla)" title="Editar">
+                                <button class="btn btn-primary btn-sm me-1" @onclick="() => EditarFuente(tabla)" title="Editar">
                                     <i class="bi bi-pencil-fill"></i>
                                 </button>
-                                <button class="btn btn-danger btn-sm" @onclick="() => EliminarActor(tabla)" title="Eliminar">
+                                <button class="btn btn-danger btn-sm" @onclick="() => EliminarFuente(tabla)" title="Eliminar">
                                     <i class="bi bi-trash-fill"></i>
                                 </button>
                             </div>
@@ -66,17 +63,15 @@ else
 
 @code {
     private List<Dictionary<string, object>> tablas = new();
-    private List<Dictionary<string, object>> listaTipoActor = new();
     private bool cargando = true;
     private string? errorMensaje;
 
     private const string PROYECTO = "proyecto";
-    private const string TABLA = "actor";
+    private const string TABLA = "fuente";
 
     protected override async Task OnInitializedAsync()
     {
         await CargarTabla();
-        await CargarListasRelacionadas();
     }
 
     private async Task CargarTabla()
@@ -98,55 +93,39 @@ else
         }
     }
 
-    private async Task CargarListasRelacionadas()
-    {
-        listaTipoActor = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "tipoactor") ?? new();
-    }
-
     private string ObtenerValor(Dictionary<string, object> dic, string clave)
     {
         if (dic != null && dic.TryGetValue(clave, out var val))
         {
-            if (val == null)
-                return string.Empty;
-            if (val is int intVal && intVal == 0)
-                return string.Empty;
-            if (val is long longVal && longVal == 0)
-                return string.Empty;
-            if (val.ToString() == "0")
-                return string.Empty;
-
-            return val.ToString() ?? string.Empty;
+            return val?.ToString() ?? string.Empty;
         }
-
         return string.Empty;
     }
 
-    private string ObtenerForanea(List<Dictionary<string, object>> lista, string id, string campo)
+    private void CrearFuente()
     {
-        if (string.IsNullOrWhiteSpace(id)) return string.Empty;
-
-        var item = lista.FirstOrDefault(x => x.TryGetValue("id", out var val) && val?.ToString() == id);
-        if (item != null && item.TryGetValue(campo, out var foranea))
-            return foranea?.ToString() ?? string.Empty;
-
-        return string.Empty;
+        navegacionManager.NavigateTo("/fuente/crear");
     }
 
-    private void CrearActor()
-    {
-        navegacionManager.NavigateTo("/actor/crear");
-    }
-
-    private void EditarActor(Dictionary<string, object> tabla)
+    private void EditarFuente(Dictionary<string, object> tabla)
     {
         var id = ObtenerValor(tabla, "id");
-        navegacionManager.NavigateTo($"/actor/editar/{id}");
+        navegacionManager.NavigateTo($"/fuente/editar/{id}");
     }
 
-    private void EliminarActor(Dictionary<string, object> tabla)
+
+
+    private async void EliminarFuente(Dictionary<string, object> tabla)
     {
         var id = ObtenerValor(tabla, "id");
-        tablas.Remove(tabla);
+        bool eliminado = await servicioEntidad.EliminarAsync(PROYECTO, TABLA, "id", id);
+        if (eliminado)
+        {
+            tablas.Remove(tabla);
+        }
+        else
+        {
+            errorMensaje = $"No se pudo eliminar la fuente con ID {id}.";
+        }
     }
 }
