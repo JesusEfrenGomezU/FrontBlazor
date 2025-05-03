@@ -1,0 +1,152 @@
+@page "/fuente"
+@using System.Collections.Generic  
+@using System.Threading.Tasks
+@using Services  
+@inject ServicioEntidad servicioEntidad  
+@inject NavigationManager navegacionManager  
+
+<PageTitle>Lista de Fuentes</PageTitle>
+
+<h1>Fuentes</h1>
+
+<button class="btn btn-success mb-3" @onclick="CrearFuente">  
+    <i class="bi bi-plus-lg"></i> Crear Fuente  
+</button>
+
+@if (cargando)
+{
+    <p><em>Cargando...</em></p>  
+}
+else if (tablas == null || tablas.Count == 0)
+{
+    <p>No hay fuentes disponibles.</p>  
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Tipo Fuente</th>
+                    <th class="text-center" style="white-space: nowrap;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var tabla in tablas)
+                {
+                    <tr>
+                        <td>@ObtenerValor(tabla, "id")</td>
+                        <td>@ObtenerValor(tabla, "nombre")</td>
+                        <td>@ObtenerForanea(listaTipoFuente, ObtenerValor(tabla, "fkidtipofuente"), "nombre")</td>
+                        <td class="text-center" style="white-space: nowrap;">
+                            <div class="d-inline-flex">
+                                <button class="btn btn-primary btn-sm me-1" @onclick="() => EditarFuente(tabla)" title="Editar">
+                                    <i class="bi bi-pencil-fill"></i>
+                                </button>
+                                <button class="btn btn-danger btn-sm" @onclick="() => EliminarFuente(tabla)" title="Eliminar">
+                                    <i class="bi bi-trash-fill"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(errorMensaje))
+{
+    <div class="alert alert-danger">
+        Error: @errorMensaje
+    </div>
+}
+
+@code {
+    private List<Dictionary<string, object>> tablas = new();
+    private List<Dictionary<string, object>> listaTipoFuente = new();
+    private bool cargando = true;
+    private string? errorMensaje;
+
+    private const string PROYECTO = "proyecto";
+    private const string TABLA = "fuente";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarTabla();
+        await CargarListasRelacionadas();
+    }
+
+    private async Task CargarTabla()
+    {
+        cargando = true;
+        errorMensaje = null;
+        try
+        {
+            var resultado = await servicioEntidad.ObtenerTodosAsync(PROYECTO, TABLA);
+            tablas = resultado ?? new List<Dictionary<string, object>>();
+        }
+        catch (Exception ex)
+        {
+            errorMensaje = $"Error al cargar: {ex.Message}";
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private async Task CargarListasRelacionadas()
+    {
+        listaTipoFuente = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "tipofuente") ?? new();
+    }
+
+    private string ObtenerValor(Dictionary<string, object> dic, string clave)
+    {
+        if (dic != null && dic.TryGetValue(clave, out var val))
+        {
+            if (val == null)
+                return string.Empty;
+            if (val is int intVal && intVal == 0)
+                return string.Empty;
+            if (val is long longVal && longVal == 0)
+                return string.Empty;
+            if (val.ToString() == "0")
+                return string.Empty;
+
+            return val.ToString() ?? string.Empty;
+        }
+
+        return string.Empty;
+    }
+
+    private string ObtenerForanea(List<Dictionary<string, object>> lista, string id, string campo)
+    {
+        if (string.IsNullOrWhiteSpace(id)) return string.Empty;
+
+        var item = lista.FirstOrDefault(x => x.TryGetValue("id", out var val) && val?.ToString() == id);
+        if (item != null && item.TryGetValue(campo, out var foranea))
+            return foranea?.ToString() ?? string.Empty;
+
+        return string.Empty;
+    }
+
+    private void CrearFuente()
+    {
+        navegacionManager.NavigateTo("/fuente/crear");
+    }
+
+    private void EditarFuente(Dictionary<string, object> tabla)
+    {
+        var id = ObtenerValor(tabla, "id");
+        navegacionManager.NavigateTo($"/fuente/editar/{id}");
+    }
+
+    private void EliminarFuente(Dictionary<string, object> tabla)
+    {
+        var id = ObtenerValor(tabla, "id");
+        tablas.Remove(tabla);
+    }
+}

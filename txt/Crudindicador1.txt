@@ -1,0 +1,372 @@
+@page "/indicador"
+@using System.Collections.Generic  
+@using System.Text.Json  
+@using System.Threading.Tasks
+@using Services  
+@inject ServicioEntidad servicioEntidad  
+@inject NavigationManager navegacionManager  
+
+<PageTitle>Lista de Tipo indicador</PageTitle>
+
+<h1>indicador</h1>
+
+<!-- Botón para crear un nuevo tipo de indicador -->  
+<button class="btn btn-success mb-3" @onclick="CrearTabla">  
+    <i class="bi bi-plus-lg"></i> Crear Tipo Indicador  
+</button>
+
+@if (cargando)
+{
+    <p><em>Cargando...</em></p>  
+}
+else if (tablas == null || tablas.Count == 0)
+{
+    <p>No hay tipos disponibles.</p>  
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>codigo</th>
+                    <th>Nombre</th>
+                    <th>objetivo</th>
+                    <th>alcance</th>
+                    <th>formula</th>
+                    <th>tipoindicador</th>
+                    <th>unidadmedicion</th>
+                    <th>meta</th>
+                    <th>sentido</th>
+                    <th>frecuencia</th>
+                    <th>articulo</th>
+                    <th>literal</th>
+                    <th>numeral</th>
+                    <th>paragrafo</th>
+                    
+                    <th class="text-center" style="white-space: nowrap;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var tabla in tablas)
+                {
+                    <tr>
+                        <td>@ObtenerValor(tabla, "id")</td>
+                        <td>@ObtenerValor(tabla, "codigo")</td>
+                        <td>@ObtenerValor(tabla, "nombre")</td>
+                        <td>@ObtenerValor(tabla, "objetivo")</td>
+                        <td>@ObtenerValor(tabla, "alcance")</td>
+                        <td>@ObtenerValor(tabla, "formula")</td>
+                        <td>@ObtenerValor(tabla, "fkidtipoindicador")</td>
+                        <td>@ObtenerValor(tabla, "fkidunidadmedicion")</td>
+                        <td>@ObtenerValor(tabla, "meta")</td>
+                        <td>@ObtenerValor(tabla, "meta")</td>
+                        <td>@ObtenerValor(tabla, "fkidsentido")</td>
+                        <td>@ObtenerValor(tabla, "fkidfrecuencia")</td>
+                        <td>@ObtenerValor(tabla, "fkidarticulo")</td>
+                        <td>@ObtenerValor(tabla, "fkidliteral")</td>
+                        <td>@ObtenerValor(tabla, "fkidnumeral")</td>
+                        <td>@ObtenerValor(tabla, "fkidparagrafo")</td>
+                        <td class="text-center" style="white-space: nowrap;">
+                            <div class="d-inline-flex">
+                                <button class="btn btn-primary btn-sm me-1" @onclick="() => EditarTabla(tabla)" title="Editar">
+                                    <i class="bi bi-pencil-fill"></i>
+                                </button>
+                                <button class="btn btn-danger btn-sm" @onclick="() => EliminarTabla(tabla)" title="Eliminar">
+                                    <i class="bi bi-trash-fill"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(errorMensaje))
+{
+    <div class="alert alert-danger">
+        Error: @errorMensaje
+    </div>
+}
+
+@code {
+    private List<Dictionary<string, object>> tablas = new();
+    private bool cargando = true;
+    private string? errorMensaje;
+
+    private const string PROYECTO = "proyecto";
+    private const string TABLA = "indicador";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarTabla();
+    }
+
+    private async Task CargarTabla()
+    {
+        cargando = true;
+        errorMensaje = null;
+        try
+        {
+            var resultado = await servicioEntidad.ObtenerTodosAsync(PROYECTO, TABLA);
+            tablas = resultado ?? new List<Dictionary<string, object>>();
+        }
+        catch (Exception ex)
+        {
+            errorMensaje = $"Error al cargar: {ex.Message}";
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    @*private string ObtenerValor(Dictionary<string, object> dic, string clave)
+    {
+        
+        return dic != null && dic.TryGetValue(clave, out var val) ? val?.ToString() ?? string.Empty : string.Empty;
+    }*@
+    private string ObtenerValor(Dictionary<string, object> dic, string clave)
+    {
+        if (dic != null && dic.TryGetValue(clave, out var val))
+        {
+            if (val == null)
+                return string.Empty;
+
+            // Si es numérico y es 0, devolver cadena vacía
+            if (val is int intVal && intVal == 0)
+                return string.Empty;
+
+            if (val is long longVal && longVal == 0)
+                return string.Empty;
+
+            if (val.ToString() == "0")
+                return string.Empty;
+
+            return val.ToString() ?? string.Empty;
+        }
+
+        return string.Empty;
+    }
+
+
+    private void CrearTabla()
+    {
+        navegacionManager.NavigateTo("/tipoindicador/crear");
+    }
+
+    private void EditarTabla(Dictionary<string, object> tabla)
+    {
+        var id = ObtenerValor(tabla, "id");
+        navegacionManager.NavigateTo($"/tipoindicador/editar/{id}");
+    }
+
+    private void EliminarTabla(Dictionary<string, object> tabla)
+    {
+        var id = ObtenerValor(tabla, "id");
+        // Lógica real de eliminación, si aplica:
+        //await servicioEntidad.EliminarAsync(PROYECTO, TABLA, id);
+        tablas.Remove(tabla);
+    }
+}
+
+
+
+
+
+@page "/indicador"
+@using System.Collections.Generic  
+@using System.Text.Json  
+@using System.Threading.Tasks
+@using Services  
+@inject ServicioEntidad servicioEntidad  
+@inject NavigationManager navegacionManager  
+
+<PageTitle>Lista de Tipo indicador</PageTitle>
+
+<h1>indicador</h1>
+
+<!-- Botón para crear un nuevo tipo de indicador -->  
+<button class="btn btn-success mb-3" @onclick="CrearTabla">  
+    <i class="bi bi-plus-lg"></i> Crear Tipo Indicador  
+</button>
+
+@if (cargando)
+{
+    <p><em>Cargando...</em></p>  
+}
+else if (tablas == null || tablas.Count == 0)
+{
+    <p>No hay tipos disponibles.</p>  
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>codigo</th>
+                    <th>Nombre</th>
+                    <th>objetivo</th>
+                    <th>alcance</th>
+                    <th>formula</th>
+                    <th>tipoindicador</th>
+                    <th>unidadmedicion</th>
+                    <th>meta</th>
+                    <th>sentido</th>
+                    <th>frecuencia</th>
+                    <th>articulo</th>
+                    <th>literal</th>
+                    <th>numeral</th>
+                    <th>paragrafo</th>
+                    <th class="text-center" style="white-space: nowrap;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var tabla in tablas)
+                {
+                    <tr>
+                        <td>@ObtenerValor(tabla, "id")</td>
+                        <td>@ObtenerValor(tabla, "codigo")</td>
+                        <td>@ObtenerValor(tabla, "nombre")</td>
+                        <td>@ObtenerValor(tabla, "objetivo")</td>
+                        <td>@ObtenerValor(tabla, "alcance")</td>
+                        <td>@ObtenerValor(tabla, "formula")</td>
+                        <td>@ObtenerValor(tabla, "fkidtipoindicador")</td>
+                        <td>@ObtenerValor(tabla, "fkidunidadmedicion")</td>
+                        <td>@ObtenerValor(tabla, "meta")</td>
+                        <td>@ObtenerDescripcion(listaSentidos, ObtenerValor(tabla, "fkidsentido"))</td>
+                        <td>@ObtenerDescripcion(listaFrecuencias, ObtenerValor(tabla, "fkidfrecuencia"))</td>
+                        <td>@ObtenerDescripcion(listaArticulos, ObtenerValor(tabla, "fkidarticulo"))</td>
+                        <td>@ObtenerDescripcion(listaLiterales, ObtenerValor(tabla, "fkidliteral"))</td>
+                        <td>@ObtenerDescripcion(listaNumerales, ObtenerValor(tabla, "fkidnumeral"))</td>
+                        <td>@ObtenerDescripcion(listaParagrafos, ObtenerValor(tabla, "fkidparagrafo"))</td>
+                        <td class="text-center" style="white-space: nowrap;">
+                            <div class="d-inline-flex">
+                                <button class="btn btn-primary btn-sm me-1" @onclick="() => EditarTabla(tabla)" title="Editar">
+                                    <i class="bi bi-pencil-fill"></i>
+                                </button>
+                                <button class="btn btn-danger btn-sm" @onclick="() => EliminarTabla(tabla)" title="Eliminar">
+                                    <i class="bi bi-trash-fill"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(errorMensaje))
+{
+    <div class="alert alert-danger">
+        Error: @errorMensaje
+    </div>
+}
+
+@code {
+    private List<Dictionary<string, object>> tablas = new();
+    private bool cargando = true;
+    private string? errorMensaje;
+
+    // Listas relacionadas para claves foráneas
+    private List<Dictionary<string, object>> listaNumerales = new();
+    private List<Dictionary<string, object>> listaArticulos = new();
+    private List<Dictionary<string, object>> listaLiterales = new();
+    private List<Dictionary<string, object>> listaParagrafos = new();
+    private List<Dictionary<string, object>> listaSentidos = new();
+    private List<Dictionary<string, object>> listaFrecuencias = new();
+
+    private const string PROYECTO = "proyecto";
+    private const string TABLA = "indicador";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarTabla();
+        await CargarListasRelacionadas();
+    }
+
+    private async Task CargarTabla()
+    {
+        cargando = true;
+        errorMensaje = null;
+        try
+        {
+            var resultado = await servicioEntidad.ObtenerTodosAsync(PROYECTO, TABLA);
+            tablas = resultado ?? new List<Dictionary<string, object>>();
+        }
+        catch (Exception ex)
+        {
+            errorMensaje = $"Error al cargar: {ex.Message}";
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private async Task CargarListasRelacionadas()
+    {
+        listaNumerales = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "numeral") ?? new();
+        listaArticulos = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "articulo") ?? new();
+        listaLiterales = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "literal") ?? new();
+        listaParagrafos = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "paragrafo") ?? new();
+        listaSentidos = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "sentido") ?? new();
+        listaFrecuencias = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "frecuencia") ?? new();
+    }
+
+    private string ObtenerValor(Dictionary<string, object> dic, string clave)
+    {
+        if (dic != null && dic.TryGetValue(clave, out var val))
+        {
+            if (val == null)
+                return string.Empty;
+
+            if (val is int intVal && intVal == 0)
+                return string.Empty;
+
+            if (val is long longVal && longVal == 0)
+                return string.Empty;
+
+            if (val.ToString() == "0")
+                return string.Empty;
+
+            return val.ToString() ?? string.Empty;
+        }
+
+        return string.Empty;
+    }
+
+    private string ObtenerDescripcion(List<Dictionary<string, object>> lista, string id)
+    {
+        if (string.IsNullOrWhiteSpace(id)) return string.Empty;
+
+        var item = lista.FirstOrDefault(x => x.TryGetValue("id", out var val) && val?.ToString() == id);
+        if (item != null && item.TryGetValue("descripcion", out var descripcion))
+            return descripcion?.ToString() ?? string.Empty;
+
+        return string.Empty;
+    }
+
+    private void CrearTabla()
+    {
+        navegacionManager.NavigateTo("/tipoindicador/crear");
+    }
+
+    private void EditarTabla(Dictionary<string, object> tabla)
+    {
+        var id = ObtenerValor(tabla, "id");
+        navegacionManager.NavigateTo($"/tipoindicador/editar/{id}");
+    }
+
+    private void EliminarTabla(Dictionary<string, object> tabla)
+    {
+        var id = ObtenerValor(tabla, "id");
+        tablas.Remove(tabla);
+    }
+}
