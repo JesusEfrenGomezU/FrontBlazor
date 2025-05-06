@@ -1,0 +1,966 @@
+@page "/indicador"
+@using System.Collections.Generic  
+@using System.Net.Http.Json
+@using System.Text
+@using System.Text.Json  
+@using System.Threading.Tasks
+@using FrontBlazor.Services  
+@inject ServicioEntidad servicioEntidad  
+@inject NavigationManager navegacionManager
+@inject IJSRuntime JS
+@inherits ValidacionAcceso
+
+<PageTitle>Listado Indicadores</PageTitle>
+
+<h1>Indicador</h1>
+
+<!-- BUSCADOR -->
+
+<div class="input-group mb-3">
+    <input type="text" class="form-control" placeholder="Buscar indicador (código o nombre)..." @bind="searchTerm" />
+    <button class="btn btn-outline-secondary" type="button" @onclick="BuscarIndicador">
+        <i class="bi bi-search"></i>
+    </button>
+</div>
+
+<!-- BOTÓN CREAR INDICADOR -->
+<button class="btn btn-primary mb-3 @(canCreate ? "" : "opacity-50")"
+    disabled="@( !canCreate )"
+    @onclick="() => { if (canCreate) ShowCreateModal(); }">
+    <i class="bi bi-plus-lg"></i> Crear Indicador
+</button>
+
+
+<!-- MODAL CREAR -->
+@if (showCreateModal)
+{
+    <div class="overlay">
+        <div class="popup">
+            <h3>Nuevo Indicador</h3>
+
+            <div class="form-group">
+                <label>Código</label>
+                <input class="form-control" @bind="newCodigo" placeholder="Código" />
+            </div>
+            <div class="form-group">
+                <label>Nombre</label>
+                <input class="form-control" @bind="newNombre" placeholder="Nombre" />
+            </div>
+            <div class="form-group">
+                <label>Objetivo</label>
+                <textarea class="form-control" @bind="newObjetivo" placeholder="Objetivo"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Alcance</label>
+                <textarea class="form-control" @bind="newAlcance" placeholder="Alcance"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Fórmula</label>
+                <input class="form-control" @bind="newFormula" placeholder="Fórmula" />
+            </div>
+            <div class="form-group">
+                <label>Meta</label>
+                <input class="form-control" @bind="newMeta" placeholder="Meta" />
+            </div>
+
+            <!-- Desplegables -->
+            <div class="form-group">
+                <label>Tipo Indicador</label>
+                <select class="form-select" @bind="newFkidTipoIndicador">
+                    <option value="0">--Seleccione--</option>
+                    @foreach (var item in listaTipoIndicador)
+                    {
+                        <option value="@int.Parse(ObtenerValor(item, "id"))">
+                            @ObtenerValor(item, "nombre")
+                        </option>
+                    }
+                </select>
+            </div>
+            <!-- Desplegables -->
+            <div class="form-group">
+                <label>Unidad de Medición</label>
+                <select class="form-select" @bind="newFkidUnidadMedicion">
+                    <option value="0">--Seleccione--</option>
+                    @foreach (var item in listaUnidadMedicion)
+                    {
+                        <option value="@int.Parse(ObtenerValor(item, "id"))">
+                            @ObtenerValor(item, "descripcion")
+                        </option>
+                    }
+                </select>
+            </div>
+            <!-- Desplegables -->
+            <div class="form-group">
+                <label>Sentido</label>
+                <select class="form-select" @bind="newFkidSentido">
+                    <option value="0">--Seleccione--</option>
+                    @foreach (var item in listaSentido)
+                    {
+                        <option value="@int.Parse(ObtenerValor(item, "id"))">
+                            @ObtenerValor(item, "nombre")
+                        </option>
+                    }
+                </select>
+            </div>
+            <!-- Desplegables -->
+            <div class="form-group">
+                <label>Frecuencia</label>
+                <select class="form-select" @bind="newFkidFrecuencia">
+                    <option value="0">--Seleccione--</option>
+                    @foreach (var item in listaFrecuencia)
+                    {
+                        <option value="@int.Parse(ObtenerValor(item, "id"))">
+                            @ObtenerValor(item, "nombre")
+                        </option>
+                    }
+                </select>
+            </div>
+            <!-- Desplegables -->
+            <div class="form-group">
+                <label>Artículo</label>
+                <select class="form-select" @bind="newFkidArticulo">
+                    <option value="">--Seleccione--</option>
+                    @foreach (var item in listaArticulo)
+                    {
+                        <option value="@ObtenerValor(item, "id")">
+                            @ObtenerValor(item, "nombre")
+                        </option>
+                    }
+                </select>
+            </div>
+            <!-- Desplegables -->
+            <div class="form-group">
+                <label>Literal</label>
+                <select class="form-select" @bind="newFkidliteral">
+                    <option value="">--Seleccione--</option>
+                    @foreach (var item in listaLiteral)
+                    {
+                        <option value="@ObtenerValor(item, "id")">
+                            @ObtenerValor(item, "descripcion")
+                        </option>
+                    }
+                </select>
+            </div>
+            <!-- Desplegables -->
+            <div class="form-group">
+                <label>Numeral</label>
+                <select class="form-select" @bind="newFkidNumeral">
+                    <option value="">--Seleccione--</option>
+                    @foreach (var item in listaNumeral)
+                    {
+                        <option value="@ObtenerValor(item, "id")">
+                            @ObtenerValor(item, "descripcion")
+                        </option>
+                    }
+                </select>
+            </div>
+            <!-- Desplegables -->
+            <div class="form-group">
+                <label>Parágrafo</label>
+                <select class="form-select" @bind="newFkidParagrafo">
+                    <option value="">--Seleccione--</option>
+                    @foreach (var item in listaParagrafo)
+                    {
+                        <option value="@ObtenerValor(item, "id")">
+                            @ObtenerValor(item, "descripcion")
+                        </option>
+                    }
+                </select>
+            </div>
+
+            <div class="popup-actions">
+                <button class="btn btn-success" @onclick="OnSubmitCreateAsync">Guardar</button>
+                <button class="btn btn-secondary" @onclick="HideCreateModal">Cancelar</button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- LISTADO -->
+@if (cargando)
+{
+    <p><em>Cargando...</em></p>  
+}
+else if (tablas == null || tablas.Count == 0)
+{
+    <p>No hay indicadores disponibles.</p>  
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Código</th>
+                    <th>Nombre</th>
+                    <th>Objetivo</th>
+                    <th>Alcance</th>
+                    <th>Fórmula</th>
+                    <th>Tipo</th>
+                    <th>Unidad</th>
+                    <th>Meta</th>
+                    <th>Sentido</th>
+                    <th>Frecuencia</th>
+                    <th>Artículo</th>
+                    <th>Literal</th>
+                    <th>Numeral</th>
+                    <th>Parágrafo</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var tabla in tablas)
+                {
+                    <tr>
+                        <td>@ObtenerValor(tabla, "id")</td>
+                        <td>@ObtenerValor(tabla, "codigo")</td>
+                        <td>@ObtenerValor(tabla, "nombre")</td>
+                        <td>@ObtenerValor(tabla, "objetivo")</td>
+                        <td>@ObtenerValor(tabla, "alcance")</td>
+                        <td>@ObtenerValor(tabla, "formula")</td>
+                        <td>@ObtenerForanea(listaTipoIndicador, ObtenerValor(tabla, "fkidtipoindicador"), "nombre")</td>
+                        <td>@ObtenerForanea(listaUnidadMedicion, ObtenerValor(tabla, "fkidunidadmedicion"), "descripcion")</td>
+                        <td>@ObtenerValor(tabla, "meta")</td>
+                        <td>@ObtenerForanea(listaSentido, ObtenerValor(tabla, "fkidsentido"), "nombre")</td>
+                        <td>@ObtenerForanea(listaFrecuencia, ObtenerValor(tabla, "fkidfrecuencia"), "nombre")</td>
+                        <td>@ObtenerForanea(listaArticulo, ObtenerValor(tabla, "fkidarticulo"), "nombre")</td>
+                        <td>@ObtenerForanea(listaLiteral, ObtenerValor(tabla, "fkidliteral"), "descripcion")</td>
+                        <td>@ObtenerForanea(listaNumeral, ObtenerValor(tabla, "fkidnumeral"), "descripcion")</td>
+                        <td>@ObtenerForanea(listaParagrafo, ObtenerValor(tabla, "fkidparagrafo"), "descripcion")</td>
+                        <!-- Botones para editar, Eliminar y tablas intermedias   -->
+                        <td class="text-center" style="white-space: nowrap;">
+                            <button class="btn btn-primary btn-sm me-1 @(canEdit ? "" : "opacity-50")"
+                                    @onclick="() => { if (canEdit) EditarTabla(tabla); }">
+                                <i class="bi bi-pencil-fill"></i>
+                            </button>
+                            <button class="btn btn-danger btn-sm @(canDelete ? "" : "opacity-50")"
+                                    @onclick="() => { if (canDelete) EliminarTabla(tabla); }">
+                                <i class="bi bi-trash-fill"></i>
+                            </button>
+
+                            <button class="btn btn-info btn-sm me-1 @(canDelete ? "" : "opacity-50")"
+                                    @onclick="() => { if (canDelete) ShowRepresenModal(tabla); }">
+                                <i class="bi bi-box-arrow-in-up-right fs-6"></i>
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(errorMensaje))
+{
+    <div class="alert alert-danger">@errorMensaje</div>
+}
+@if (!string.IsNullOrEmpty(successMensaje))
+{
+    <div class="alert alert-success">@successMensaje</div>
+}
+
+<!-- Modal popup para tablas intermedias -->
+@if (showRepModal)
+{
+    <div class="overlay">
+        <div class="popup">
+            <h3>Asignar Representaciones Visuales</h3>
+
+            @foreach (var opt in represenOptions)
+            {
+                <div class="form-check">
+                    <input class="form-check-input"
+                           type="checkbox"
+                           @bind="opt.Selected"
+                           id="rep_@opt.Id" />
+                    <label class="form-check-label" for="rep_@opt.Id">
+                        @opt.Nombre
+                    </label>
+                </div>
+            }
+
+            <h4>Responsables</h4>
+            @foreach (var opt in responsableOptions)
+            {
+                <div class="form-check">
+                    <input class="form-check-input"
+                        type="checkbox"
+                        @bind="opt.Selected"
+                        id="resp_@opt.Id" />
+                    <label class="form-check-label" for="resp_@opt.Id">
+                        @opt.Nombre
+                    </label>
+                </div>
+            }
+
+            <h4>Fuentes</h4>
+            @foreach (var opt in fuenteOptions)
+            {
+                <div class="form-check">
+                    <input class="form-check-input"
+                        type="checkbox"
+                        @bind="opt.Selected"
+                        id="fue_@opt.Id" />
+                    <label class="form-check-label" for="fue_@opt.Id">
+                        @opt.Nombre
+                    </label>
+                </div>
+            }
+
+            <h4>Variables</h4>
+            @foreach (var opt in variableOptions)
+            {
+                <div class="form-check d-flex align-items-center mb-2">
+                    <input class="form-check-input me-2"
+                        type="checkbox"
+                        @bind="opt.Selected"
+                        id="var_@opt.Fkidvariable" />
+                    <label class="form-check-label me-2" for="var_@opt.Fkidvariable">
+                        @opt.Nombre
+                    </label>
+                    <input type="number"
+                        class="form-control w-25"
+                        @bind="opt.Dato"
+                        step="any"
+                        disabled="@( !opt.Selected )" />
+                </div>
+            }
+
+
+
+
+            <div class="popup-actions">
+                <button class="btn btn-success" @onclick="OnSubmitRepresenVisualAsync">
+                    Guardar
+                </button>
+                <button class="btn btn-secondary" @onclick="HideRepresenModal">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+
+<!-- POPUP EDICIÓN -->
+@if (showPopup)
+{
+    <div class="overlay">
+        <div class="popup">
+            <h3>Editar Indicador (ID: @editId)</h3>
+            
+            <div class="form-group">
+                <label>Código</label>
+                <input class="form-control" @bind="editCodigo" />
+            </div>
+            <div class="form-group">
+                <label>Nombre</label>
+                <input class="form-control" @bind="editNombre" />
+            </div>
+            <div class="form-group">
+                <label>Objetivo</label>
+                <textarea class="form-control" @bind="editObjetivo"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Alcance</label>
+                <textarea class="form-control" @bind="editAlcance"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Fórmula</label>
+                <input class="form-control" @bind="editFormula" />
+            </div>
+            <div class="form-group">
+                <label>Meta</label>
+                <input class="form-control" @bind="editMeta" />
+            </div>
+            <div class="form-group">
+                <label>Tipo Indicador</label>
+                <select class="form-select" @bind="editFkidTipoIndicador">
+                    <option value="0">--Seleccione--</option>
+                    @foreach (var item in listaTipoIndicador)
+                    {
+                        <option value="@int.Parse(ObtenerValor(item, "id"))">
+                            @ObtenerValor(item, "nombre")
+                        </option>
+                    }
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Unidad de Medición</label>
+                <select class="form-select" @bind="editFkidUnidadMedicion">
+                    <option value="0">--Seleccione--</option>
+                    @foreach (var item in listaUnidadMedicion)
+                    {
+                        <option value="@int.Parse(ObtenerValor(item, "id"))">
+                            @ObtenerValor(item, "descripcion")
+                        </option>
+                    }
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Sentido</label>
+                <input type="number" class="form-control" @bind="editFkidSentido" />
+            </div>
+            <div class="form-group">
+                <label>Frecuencia</label>
+                <select class="form-select" @bind="editFkidFrecuencia">
+                    <option value="0">--Seleccione--</option>
+                    @foreach (var item in listaFrecuencia)
+                    {
+                        <option value="@int.Parse(ObtenerValor(item, "id"))">
+                            @ObtenerValor(item, "nombre")
+                        </option>
+                    }
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Artículo</label>
+                <select class="form-select" @bind="editFkidArticulo">
+                    <option value="">--Seleccione--</option>
+                    @foreach (var item in listaArticulo)
+                    {
+                        <option value="@ObtenerValor(item, "id")">
+                            @ObtenerValor(item, "nombre")
+                        </option>
+                    }
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Literal</label>
+                <select class="form-select" @bind="editFkidliteral">
+                    <option value="">--Seleccione--</option>
+                    @foreach (var item in listaLiteral)
+                    {
+                        <option value="@ObtenerValor(item, "id")">
+                            @ObtenerValor(item, "descripcion")
+                        </option>
+                    }
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Numeral</label>
+                <select class="form-select" @bind="editFkidNumeral">
+                    <option value="">--Seleccione--</option>
+                    @foreach (var item in listaNumeral)
+                    {
+                        <option value="@ObtenerValor(item, "id")">
+                            @ObtenerValor(item, "descripcion")
+                        </option>
+                    }
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Parágrafo</label>
+                <select class="form-select" @bind="editFkidParagrafo">
+                    <option value="">--Seleccione--</option>
+                    @foreach (var item in listaParagrafo)
+                    {
+                        <option value="@ObtenerValor(item, "id")">
+                            @ObtenerValor(item, "descripcion")
+                        </option>
+                    }
+                </select>
+            </div>
+
+            <div class="popup-actions">
+                <button class="btn btn-success" @onclick="OnSubmitEditAsync">Guardar</button>
+                <button class="btn btn-secondary" @onclick="ClosePopup">Cancelar</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    // permisos según roles 
+    private string[] userRoles = Array.Empty<string>();
+    private bool canCreate, canEdit, canDelete;
+
+
+    // búsqueda
+    private string searchTerm = string.Empty;
+
+    // constantes
+    private const string PROYECTO = "proyecto";
+    private const string TABLA    = "indicador";
+
+    // listas foráneas
+    private List<Dictionary<string, object>> tablas = new();
+    private List<Dictionary<string, object>> tablasOriginal = new();
+    private List<Dictionary<string, object>> listaTipoIndicador = new();
+    private List<Dictionary<string, object>> listaUnidadMedicion = new();
+    private List<Dictionary<string, object>> listaSentido = new();
+    private List<Dictionary<string, object>> listaFrecuencia = new();
+    private List<Dictionary<string, object>> listaArticulo = new();
+    private List<Dictionary<string, object>> listaLiteral = new();
+    private List<Dictionary<string, object>> listaNumeral = new();
+    private List<Dictionary<string, object>> listaParagrafo = new();
+
+    // estados y mensajes
+    private bool cargando = true;
+    private string? errorMensaje;
+    private string? successMensaje;
+
+    // creación
+    private bool showCreateModal = false;
+    private string newCodigo = "", 
+    newNombre = "", 
+    newObjetivo = "", 
+    newAlcance = "", 
+    newFormula = "", 
+    newMeta = "";
+    private int newFkidTipoIndicador, newFkidUnidadMedicion, newFkidSentido, newFkidFrecuencia;
+    private string newFkidArticulo = "", 
+    newFkidliteral = "", 
+    newFkidNumeral = "", 
+    newFkidParagrafo = "";
+
+    // edición (igual que antes)
+    private bool showPopup = false;
+    private string editId = "", editCodigo = "", editNombre = "", editObjetivo = "", editAlcance = "", editFormula = "", editMeta = "";
+    private int editFkidTipoIndicador, editFkidUnidadMedicion, editFkidSentido, editFkidFrecuencia;
+    private string editFkidArticulo = "", editFkidliteral = "", editFkidNumeral = "", editFkidParagrafo = "";
+    private Dictionary<string, object>? tablaOriginal;
+
+    // variables para la repre visual
+    private bool showRepModal = false;
+    private int repIndicadorId;
+    private List<RepresenOption> represenOptions = new();
+
+    class RepresenOption
+    {
+        public int Id { get; set; }
+        public string Nombre { get; set; }
+        public bool Selected { get; set; }
+    }
+
+    //opciones de responsables
+    class ResponsableOption
+    {
+        public string Id { get; set; }
+        public string Nombre { get; set; }
+        public bool Selected { get; set; }
+    }
+    private List<ResponsableOption> responsableOptions = new();
+
+    //opciones de fuentes 
+    class FuenteOption
+    {
+        public int Id { get; set; }
+        public string Nombre { get; set; }
+        public bool Selected { get; set; }
+    }
+    private List<FuenteOption> fuenteOptions = new();
+
+    
+    // opciones de variables por indicador
+    class VariableOption
+    {
+        public int Fkidvariable { get; set; }
+        public string Nombre    { get; set; }
+        public bool Selected    { get; set; }
+        public double Dato      { get; set; }
+    }
+    private List<VariableOption> variableOptions = new();
+
+
+    //Metodos para mostrar el popup
+    private async Task ShowRepresenModal(Dictionary<string, object> tabla)
+    {
+        // extrae el id del indicador actual
+        repIndicadorId = int.Parse(ObtenerValor(tabla, "id"));
+
+        //repre visual
+        var parametros = new Dictionary<string, object> { ["fkidindicador"] = repIndicadorId };
+        var lista      = await servicioEntidad.EjecutarProcedimientoAsync(
+                            PROYECTO, TABLA,
+                            "sp_GetRepresenVisualPorIndicador",
+                            parametros
+                        );
+                        
+        // construye las opciones con checkbox
+        represenOptions = lista!
+        .Select(x => new RepresenOption {
+            Id       = int.Parse(ObtenerValor(x, "id")),
+            Nombre   = ObtenerValor(x, "nombre"),
+            Selected = bool.Parse(ObtenerValor(x, "Selected"))
+        })
+        .ToList();
+
+        //responsables
+        var listaResp = await servicioEntidad.EjecutarProcedimientoAsync(
+            PROYECTO, TABLA,
+            "sp_GetResponsablesPorIndicador",
+            parametros);
+        responsableOptions = listaResp!
+            .Select(x => new ResponsableOption {
+                Id       = ObtenerValor(x, "id"),
+                Nombre   = ObtenerValor(x, "nombre"),
+                Selected = bool.Parse(ObtenerValor(x, "Selected"))
+            })
+            .ToList();
+
+        //fuentes
+        var listaFuen = await servicioEntidad.EjecutarProcedimientoAsync(
+            PROYECTO, TABLA,
+            "sp_GetFuentesPorIndicador",
+            parametros);
+        fuenteOptions = listaFuen!
+            .Select(x => new FuenteOption {
+                Id       = int.Parse(ObtenerValor(x, "id")),
+                Nombre   = ObtenerValor(x, "nombre"),
+                Selected = bool.Parse(ObtenerValor(x, "Selected"))
+            })
+            .ToList();
+
+        // variables por indicador
+        var listaTodasVar = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "variable");
+        var listaAsignada = await servicioEntidad.EjecutarProcedimientoAsync(
+            PROYECTO, TABLA,
+            "sp_GetVariablesPorIndicador",
+            parametros
+        ) ?? new();
+        var asignDict = listaAsignada.ToDictionary(
+            x => int.Parse(ObtenerValor(x, "fkidvariable")),
+            x => double.Parse(ObtenerValor(x, "dato") == "" ? "0" : ObtenerValor(x, "dato"))
+        );
+        variableOptions = listaTodasVar!
+        .Select(v =>
+        {
+            var vid = int.Parse(ObtenerValor(v, "id"));
+            return new VariableOption
+            {
+                Fkidvariable = vid,
+                Nombre       = ObtenerValor(v, "nombre"),
+                Selected     = asignDict.ContainsKey(vid),
+                Dato         = asignDict.ContainsKey(vid)
+                                ? asignDict[vid]
+                                : 0
+            };
+        })
+        .ToList();
+
+
+        showRepModal = true;
+    }
+
+    private void HideRepresenModal()
+    {
+        showRepModal = false;
+    }
+
+    //CREA con la base de datos
+    private async Task OnSubmitRepresenVisualAsync()
+    {
+        
+
+        // luego, crea solo las seleccionadas
+        var seleccionados = represenOptions
+        .Where(o => o.Selected)
+        .Select(o => o.Id)
+        .ToList();
+            var parametrosSave = new Dictionary<string, object> {
+                ["fkidindicador"] = repIndicadorId,
+                ["represenIds"]   = JsonSerializer.Serialize(seleccionados)
+            };
+            await servicioEntidad.EjecutarProcedimientoAsync(
+                PROYECTO, TABLA,
+                "sp_UpdateRepresenVisualPorIndicador",
+                parametrosSave
+            );
+
+            // actualizar responsables ---
+            var seleccionResp = responsableOptions
+                .Where(o => o.Selected)
+                .Select(o => o.Id)
+                .ToList();
+            await servicioEntidad.EjecutarProcedimientoAsync(
+                PROYECTO, TABLA,
+                "sp_UpdateResponsablesPorIndicador",
+                new Dictionary<string, object> {
+                    ["fkidindicador"]   = repIndicadorId,
+                    ["responsableIds"]  = seleccionResp
+                });
+
+            //actualizar fuentes ---
+            var seleccionFuen = fuenteOptions
+                .Where(o => o.Selected)
+                .Select(o => o.Id)
+                .ToList();
+            await servicioEntidad.EjecutarProcedimientoAsync(
+                PROYECTO, TABLA,
+                "sp_UpdateFuentesPorIndicador",
+                new Dictionary<string, object> {
+                    ["fkidindicador"] = repIndicadorId,
+                    ["fuenteIds"]     = JsonSerializer.Serialize(seleccionFuen)
+                });
+
+            // — actualizar variables por indicador —
+            var seleccionVars = variableOptions
+                .Where(o => o.Selected)
+                .Select(o => new { fkidvariable = o.Fkidvariable, dato = o.Dato })
+                .ToList();
+
+            // obtener el email del usuario logueado
+            var emailUsuario = await JS.InvokeAsync<string>("sessionStorage.getItem", "usuarioEmail");
+
+            // ejecutar el SP
+            await servicioEntidad.EjecutarProcedimientoAsync(
+                PROYECTO, TABLA,
+                "sp_UpdateVariablesPorIndicador",
+                new Dictionary<string, object>
+                {
+                    ["fkidindicador"] = repIndicadorId,
+                    ["variables"]     = seleccionVars,
+                    ["emailUsuario"]  = emailUsuario
+                });
+
+
+        HideRepresenModal();
+        await JS.InvokeVoidAsync("alert", "Representaciones actualizadas");
+    }
+
+
+
+    private void BuscarIndicador()
+    {
+        tablasOriginal = new List<Dictionary<string, object>>(tablas);
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            tablas = new List<Dictionary<string, object>>(tablasOriginal);
+        }
+        else
+        {
+            var term = searchTerm.Trim().ToLowerInvariant();
+            tablas = tablasOriginal
+                .Where(t =>
+                     ObtenerValor(t, "id").ToLowerInvariant().Contains(term) ||
+                    ObtenerValor(t, "codigo").ToLowerInvariant().Contains(term) ||
+                    ObtenerValor(t, "nombre").ToLowerInvariant().Contains(term)) 
+                    
+                .ToList();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarListasRelacionadas();
+        await CargarTabla();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await base.OnAfterRenderAsync(firstRender);
+            // leer roles desde sessionStorage 
+            //obtiene los roles del usuario actual
+            userRoles = await JS.InvokeAsync<string[]>("eval", @"
+                Object.keys(sessionStorage)
+                 .filter(k => k.startsWith('rol_'))
+                 .map(k => sessionStorage.getItem(k));");
+
+            //Mira que rol es el mayor que tiene
+            canCreate = userRoles.Contains("admin");
+            canEdit   = canCreate || userRoles.Contains("Validador");
+            canDelete = canCreate;
+
+            StateHasChanged();
+        }
+    }
+
+
+    private async Task CargarListasRelacionadas()
+    {
+        listaTipoIndicador = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "tipoindicador") ?? new();
+        listaUnidadMedicion = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "unidadmedicion") ?? new();
+        listaSentido        = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "sentido") ?? new();
+        listaFrecuencia     = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "frecuencia") ?? new();
+        listaArticulo       = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "articulo") ?? new();
+        listaLiteral        = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "literal") ?? new();
+        listaNumeral        = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "numeral") ?? new();
+        listaParagrafo      = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "paragrafo") ?? new();
+    }
+
+    private async Task CargarTabla()
+    {
+        cargando = true;
+        errorMensaje = null;
+        try
+        {
+            tablas = await servicioEntidad.ObtenerTodosAsync(PROYECTO, TABLA)
+                  ?? new List<Dictionary<string, object>>();
+        }
+        catch (Exception ex)
+        {
+            errorMensaje = $"Error al cargar: {ex.Message}";
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private string ObtenerValor(Dictionary<string, object> dic, string clave)
+    {
+        if (dic.TryGetValue(clave, out var val) && val != null && val.ToString() != "0")
+            return val.ToString()!;
+        return string.Empty;
+    }
+
+    private string ObtenerForanea(
+        List<Dictionary<string, object>> lista,
+        string id,
+        string campo)
+    {
+        if (string.IsNullOrWhiteSpace(id)) return string.Empty;
+        var item = lista.FirstOrDefault(x =>
+            x.TryGetValue("id", out var v) && v?.ToString() == id);
+        if (item != null && item.TryGetValue(campo, out var f))
+            return f?.ToString() ?? string.Empty;
+        return string.Empty;
+    }
+
+    // —— CREAR —— 
+    private void ShowCreateModal() => showCreateModal = true;
+    private void HideCreateModal()
+    {
+        showCreateModal = false;
+        errorMensaje = successMensaje = null;
+    }
+
+    private async Task OnSubmitCreateAsync()
+    {
+        var entidad = new Dictionary<string, object>
+        {
+            ["codigo"]             = newCodigo,
+            ["nombre"]             = newNombre,
+            ["objetivo"]           = newObjetivo,
+            ["alcance"]            = newAlcance,
+            ["formula"]            = newFormula,
+            ["meta"]               = newMeta,
+            ["fkidtipoindicador"]  = newFkidTipoIndicador,
+            ["fkidunidadmedicion"] = newFkidUnidadMedicion,
+            ["fkidsentido"]        = newFkidSentido,
+            ["fkidfrecuencia"]     = newFkidFrecuencia,
+            ["fkidarticulo"]       = string.IsNullOrWhiteSpace(newFkidArticulo) ? "0" : newFkidArticulo,
+            ["fkidliteral"]        = string.IsNullOrWhiteSpace(newFkidliteral)  ? "0" : newFkidliteral,
+            ["fkidnumeral"]        = string.IsNullOrWhiteSpace(newFkidNumeral)  ? "0" : newFkidNumeral,
+            ["fkidparagrafo"]      = string.IsNullOrWhiteSpace(newFkidParagrafo)? "0" : newFkidParagrafo
+        };
+
+        var ok = await servicioEntidad.CrearAsync(PROYECTO, TABLA, entidad);
+        if (ok)
+        {
+            HideCreateModal();
+            await CargarTabla();
+            await JS.InvokeVoidAsync("alert", "¡Creación exitosa!");
+        }
+        else
+        {
+            errorMensaje = "No se pudo crear el indicador.";
+        }
+    }
+
+    // —— EDITAR —— 
+    private void EditarTabla(Dictionary<string, object> tabla)
+    {
+        tablaOriginal = tabla;
+        editId       = ObtenerValor(tabla, "id");
+        editCodigo   = ObtenerValor(tabla, "codigo");
+        editNombre   = ObtenerValor(tabla, "nombre");
+        editObjetivo = ObtenerValor(tabla, "objetivo");
+        editAlcance  = ObtenerValor(tabla, "alcance");
+        editFormula  = ObtenerValor(tabla, "formula");
+        editMeta     = ObtenerValor(tabla, "meta");
+        editFkidTipoIndicador  = int.Parse(ObtenerValor(tabla, "fkidtipoindicador"));
+        editFkidUnidadMedicion = int.Parse(ObtenerValor(tabla, "fkidunidadmedicion"));
+        editFkidSentido        = int.Parse(ObtenerValor(tabla, "fkidsentido"));
+        editFkidFrecuencia     = int.Parse(ObtenerValor(tabla, "fkidfrecuencia"));
+        editFkidArticulo       = ObtenerValor(tabla, "fkidarticulo");
+        editFkidliteral        = ObtenerValor(tabla, "fkidliteral");
+        editFkidNumeral        = ObtenerValor(tabla, "fkidnumeral");
+        editFkidParagrafo      = ObtenerValor(tabla, "fkidparagrafo");
+        showPopup = true;
+    }
+
+    private void ClosePopup()
+    {
+        showPopup = false;
+        tablaOriginal = null;
+        errorMensaje = successMensaje = null;
+    }
+
+    private async Task OnSubmitEditAsync()
+    {
+        if (tablaOriginal == null) return;
+
+        var entidad = new Dictionary<string, object>
+        {
+            ["codigo"]             = editCodigo,
+            ["nombre"]             = editNombre,
+            ["objetivo"]           = editObjetivo,
+            ["alcance"]            = editAlcance,
+            ["formula"]            = editFormula,
+            ["meta"]               = editMeta,
+            ["fkidtipoindicador"]  = editFkidTipoIndicador,
+            ["fkidunidadmedicion"] = editFkidUnidadMedicion,
+            ["fkidsentido"]        = editFkidSentido,
+            ["fkidfrecuencia"]     = editFkidFrecuencia,
+            ["fkidarticulo"]       = string.IsNullOrWhiteSpace(editFkidArticulo)  ? "0" : editFkidArticulo,
+            ["fkidliteral"]        = string.IsNullOrWhiteSpace(editFkidliteral)   ? "0" : editFkidliteral,
+            ["fkidnumeral"]        = string.IsNullOrWhiteSpace(editFkidNumeral)   ? "0" : editFkidNumeral,
+            ["fkidparagrafo"]      = string.IsNullOrWhiteSpace(editFkidParagrafo) ? "0" : editFkidParagrafo
+        };
+
+        var ok = await servicioEntidad.ActualizarAsync(PROYECTO, TABLA, "id", editId, entidad);
+
+        if (ok)
+        {
+            foreach (var kv in entidad)
+                tablaOriginal![kv.Key] = kv.Value;
+            ClosePopup();
+            await JS.InvokeVoidAsync("alert", "¡Actualización exitosa!");
+        }
+        else
+        {
+            errorMensaje = "No se pudo guardar los cambios.";
+        }
+    }
+
+    private void EliminarTabla(Dictionary<string, object> tabla)
+    {
+        var id = ObtenerValor(tabla, "id");
+        tablas.Remove(tabla);
+        _ = servicioEntidad.EliminarAsync(PROYECTO, TABLA, "id", id);
+    }
+}
+
+<style>
+.overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000;
+}
+.popup {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    width: 400px;
+    max-height: 80vh; 
+    overflow-y: auto;
+}
+.form-group {
+    margin-bottom: 15px;
+}
+.popup-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 10px;
+}
+</style>
