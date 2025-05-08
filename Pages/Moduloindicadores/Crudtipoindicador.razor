@@ -1,0 +1,224 @@
+@page "/tipoindicador"
+@using System.Collections.Generic  
+@using System.Net.Http.Json
+@using System.Text
+@using System.Text.Json  
+@using System.Threading.Tasks
+@using FrontBlazor.Services  
+@inject ServicioEntidad servicioEntidad  
+@inject NavigationManager navegacionManager
+@inject IJSRuntime JS
+
+<h3>Tipo Indicador</h3>
+
+<!-- Buscador -->
+<div class="input-group mb-3">
+    <input type="text" class="form-control" placeholder="Buscar tipo indicador..." @bind="searchTerm" />
+    <button class="btn btn-outline-secondary" @onclick="Buscar">Buscar</button>
+</div>
+
+<!-- Botón Crear -->
+<button class="btn btn-primary mb-3" @onclick="() => showCreateModal = true">Nuevo Tipo</button>
+
+@if (showCreateModal)
+{
+    <div class="overlay">
+        <div class="popup">
+            <h4>Nuevo Tipo Indicador</h4>
+            <div class="form-group">
+                <label>Nombre</label>
+                <input class="form-control" @bind="newNombre" />
+            </div>
+            <div class="popup-actions">
+                <button class="btn btn-success" @onclick="CrearTipo">Guardar</button>
+                <button class="btn btn-secondary" @onclick="() => showCreateModal = false">Cancelar</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showPopup)
+{
+    <div class="overlay">
+        <div class="popup">
+            <h4>Editar Tipo Indicador (ID: @editId)</h4>
+            <div class="form-group">
+                <label>Nombre</label>
+                <input class="form-control" @bind="editNombre" />
+            </div>
+            <div class="popup-actions">
+                <button class="btn btn-success" @onclick="OnSubmitEditAsync">Guardar</button>
+                <button class="btn btn-secondary" @onclick="() => showPopup = false">Cancelar</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(errorMensaje))
+{
+    <div class="alert alert-danger">@errorMensaje</div>
+}
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var tipo in tipos)
+        {
+            <tr>
+                <td>@ObtenerValor(tipo, "id")</td>
+                <td>@ObtenerValor(tipo, "nombre")</td>
+                <td>
+                    <button class="btn btn-primary btn-sm me-1" @onclick="() => EditarTipo(tipo)">
+                        <i class="bi bi-pencil-fill"></i>
+                    </button>
+                    <button class="btn btn-danger btn-sm" @onclick="() => EliminarTipo(tipo)">
+                        <i class="bi bi-trash-fill"></i>
+                    </button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private List<Dictionary<string, object>> tipos = new();
+    private List<Dictionary<string, object>> tiposOriginal = new();
+    private string searchTerm = string.Empty;
+
+    private bool showCreateModal = false;
+    private string newNombre = string.Empty;
+
+    private bool showPopup = false;
+    private string editId = string.Empty;
+    private string editNombre = string.Empty;
+    private Dictionary<string, object>? tipoOriginal;
+
+    private string? errorMensaje;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDatos();
+    }
+
+    private async Task CargarDatos()
+    {
+        tipos = await servicioEntidad.ObtenerTodosAsync("proyecto", "tipoindicador") ?? new();
+        tiposOriginal = new(tipos);
+    }
+
+    private async Task CrearTipo()
+    {
+        var entidad = new Dictionary<string, object> { ["nombre"] = newNombre };
+        var ok = await servicioEntidad.CrearAsync("proyecto", "tipoindicador", entidad);
+        if (ok)
+        {
+            showCreateModal = false;
+            newNombre = string.Empty;
+            await CargarDatos();
+        }
+        else
+        {
+            errorMensaje = "Error al crear el tipo.";
+        }
+    }
+
+    private void Buscar()
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            tipos = new(tiposOriginal);
+        }
+        else
+        {
+            var term = searchTerm.ToLowerInvariant();
+            tipos = tiposOriginal
+                .Where(t => ObtenerValor(t, "nombre").ToLowerInvariant().Contains(term))
+                .ToList();
+        }
+    }
+
+    private void EditarTipo(Dictionary<string, object> tipo)
+    {
+        tipoOriginal = tipo;
+        editId = ObtenerValor(tipo, "id");
+        editNombre = ObtenerValor(tipo, "nombre");
+        showPopup = true;
+    }
+
+    private async Task OnSubmitEditAsync()
+    {
+        if (tipoOriginal == null) return;
+        var entidad = new Dictionary<string, object> { ["nombre"] = editNombre };
+        var ok = await servicioEntidad.ActualizarAsync("proyecto", "tipoindicador", "id", editId, entidad);
+        if (ok)
+        {
+            foreach (var kv in entidad)
+                tipoOriginal[kv.Key] = kv.Value;
+            showPopup = false;
+        }
+        else
+        {
+            errorMensaje = "Error al actualizar.";
+        }
+    }
+
+    private async Task EliminarTipo(Dictionary<string, object> tipo)
+    {
+        var id = ObtenerValor(tipo, "id");
+        var confirmado = await JS.InvokeAsync<bool>("confirm", $"¿Eliminar tipo con ID {id}?");
+        if (confirmado)
+        {
+            var ok = await servicioEntidad.EliminarAsync("proyecto", "tipoindicador", "id", id);
+            if (ok)
+            {
+                tipos.Remove(tipo);
+            }
+            else
+            {
+                errorMensaje = "Error al eliminar.";
+            }
+        }
+    }
+
+    private string ObtenerValor(Dictionary<string, object> dic, string clave)
+    {
+        if (dic.TryGetValue(clave, out var val) && val != null)
+            return val.ToString()!;
+        return string.Empty;
+    }
+}
+
+<style>
+.overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000;
+}
+.popup {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    width: 400px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+.form-group {
+    margin-bottom: 15px;
+}
+.popup-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 10px;
+}
+</style>

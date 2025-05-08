@@ -119,3 +119,31 @@
     content: "\e800";  /* Código del ícono del cuadro/caja */
 }
 
+.accordion {
+    color: white; /* Cambiar color del texto */
+}
+
+.accordion:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.accordion .arrow {
+    color: white; /* Cambiar color de la flecha */
+}
+
+.panel {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.5s ease;
+}
+
+.arrow {
+    display: inline-block;
+    margin-left: 8px;
+    transition: transform 0.3s ease;
+}
+
+.accordion.active .arrow {
+    transform: rotate(180deg);
+}
