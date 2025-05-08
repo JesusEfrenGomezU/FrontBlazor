@@ -1,0 +1,188 @@
+@page "/unidadmedicion"
+@using FrontBlazor.Services
+@inject ServicioEntidad servicioEntidad
+@inject IJSRuntime JS
+
+<PageTitle>Unidad de Medición</PageTitle>
+
+<h1>Unidad de Medición</h1>
+
+<!-- BUSCADOR -->
+<div class="input-group mb-3">
+    <input type="text" class="form-control" placeholder="Buscar..." @bind="searchTerm" />
+    <button class="btn btn-outline-secondary" @onclick="Buscar">Buscar</button>
+</div>
+
+<!-- BOTÓN CREAR -->
+<button class="btn btn-primary mb-3" @onclick="ShowCreateModal">
+    <i class="bi bi-plus-lg"></i> Crear Unidad
+</button>
+
+<!-- LISTADO -->
+@if (cargando)
+{
+    <p><em>Cargando...</em></p>
+}
+else if (unidades.Count == 0)
+{
+    <p>No hay unidades de medición registradas.</p>
+}
+else
+{
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Descripción</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var u in unidades)
+            {
+                <tr>
+                    <td>@u["id"]</td>
+                    <td>@u["descripcion"]</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary me-2" @onclick="() => Editar(u)">
+                            <i class="bi bi-pencil-fill"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => Eliminar(u)">
+                            <i class="bi bi-trash-fill"></i>
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<!-- MODAL CREAR -->
+@if (showCreate)
+{
+    <div class="overlay">
+        <div class="popup">
+            <h3>Nueva Unidad de Medición</h3>
+            <input class="form-control mb-3" @bind="newDescripcion" placeholder="Descripción..." />
+            <div class="popup-actions">
+                <button class="btn btn-success" @onclick="Crear">Guardar</button>
+                <button class="btn btn-secondary" @onclick="() => showCreate = false">Cancelar</button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- MODAL EDITAR -->
+@if (showEdit)
+{
+    <div class="overlay">
+        <div class="popup">
+            <h3>Editar Unidad (ID: @editId)</h3>
+            <input class="form-control mb-3" @bind="editDescripcion" />
+            <div class="popup-actions">
+                <button class="btn btn-success" @onclick="Actualizar">Actualizar</button>
+                <button class="btn btn-secondary" @onclick="() => showEdit = false">Cancelar</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private const string PROYECTO = "proyecto";
+    private const string TABLA = "unidadmedicion";
+
+    private List<Dictionary<string, object>> unidades = new();
+    private List<Dictionary<string, object>> unidadesOriginal = new();
+    private string searchTerm = string.Empty;
+    private bool cargando = true;
+
+    // Crear
+    private bool showCreate = false;
+    private string newDescripcion = "";
+
+    // Editar
+    private bool showEdit = false;
+    private string editId = "";
+    private string editDescripcion = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarUnidades();
+    }
+
+    private async Task CargarUnidades()
+    {
+        cargando = true;
+        unidades = await servicioEntidad.ObtenerTodosAsync(PROYECTO, TABLA) ?? new();
+        unidadesOriginal = new(unidades);
+        cargando = false;
+    }
+
+    private void Buscar()
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            unidades = new(unidadesOriginal);
+        }
+        else
+        {
+            var term = searchTerm.Trim().ToLower();
+            unidades = unidadesOriginal
+                .Where(u => u["descripcion"].ToString()!.ToLower().Contains(term))
+                .ToList();
+        }
+    }
+
+    private void ShowCreateModal()
+    {
+        newDescripcion = "";
+        showCreate = true;
+    }
+
+    private async Task Crear()
+    {
+        var nueva = new Dictionary<string, object>
+        {
+            ["descripcion"] = newDescripcion
+        };
+
+        var ok = await servicioEntidad.CrearAsync(PROYECTO, TABLA, nueva);
+        if (ok)
+        {
+            showCreate = false;
+            await CargarUnidades();
+            await JS.InvokeVoidAsync("alert", "Unidad creada exitosamente.");
+        }
+    }
+
+    private void Editar(Dictionary<string, object> u)
+    {
+        editId = u["id"].ToString()!;
+        editDescripcion = u["descripcion"].ToString()!;
+        showEdit = true;
+    }
+
+    private async Task Actualizar()
+    {
+        var entidad = new Dictionary<string, object>
+        {
+            ["descripcion"] = editDescripcion
+        };
+
+        var ok = await servicioEntidad.ActualizarAsync(PROYECTO, TABLA, "id", editId, entidad);
+        if (ok)
+        {
+            showEdit = false;
+            await CargarUnidades();
+            await JS.InvokeVoidAsync("alert", "Unidad actualizada.");
+        }
+    }
+
+    private async Task Eliminar(Dictionary<string, object> u)
+    {
+        var id = u["id"].ToString()!;
+        await servicioEntidad.EliminarAsync(PROYECTO, TABLA, "id", id);
+        await CargarUnidades();
+        await JS.InvokeVoidAsync("alert", "Unidad eliminada.");
+    }
+}

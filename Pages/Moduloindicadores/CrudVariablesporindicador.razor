@@ -1,0 +1,98 @@
+@page "/variablesporindicador"
+@using FrontBlazor.Services
+@inject ServicioEntidad servicioEntidad
+@inherits ValidacionAcceso
+
+<PageTitle>Variables del Indicador</PageTitle>
+
+<h1>Variables por Indicador</h1>
+
+<div class="mb-3">
+    <label>Seleccione Indicador:</label>
+    <select class="form-select" @bind="selectedIndicadorId" @onchange="CargarVariables">
+        <option value="">--Seleccione--</option>
+        @foreach (var indicador in listaIndicadores)
+        {
+            <option value="@ObtenerValor(indicador, "id")">
+                @($"{ObtenerValor(indicador, "codigo")} - {ObtenerValor(indicador, "nombre")}")
+            </option>
+        }
+    </select>
+</div>
+
+@if (!string.IsNullOrEmpty(selectedIndicadorId))
+{
+    @if (variablesAsignadas.Count == 0)
+    {
+        <p>No hay variables asociadas a este indicador.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Dato Asociado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var variable in variablesAsignadas)
+                    {
+                        <tr>
+                            <td>@variable.Nombre</td>
+                            <td>@variable.Dato</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+
+@code {
+    private const string PROYECTO = "proyecto";
+    private const string TABLA = "indicador";
+
+    private string? selectedIndicadorId;
+    private List<Dictionary<string, object>> listaIndicadores = new();
+
+    private List<VariableAsignada> variablesAsignadas = new();
+
+    class VariableAsignada
+    {
+        public string Nombre { get; set; } = "";
+        public double Dato { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        listaIndicadores = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "indicador") ?? new();
+    }
+
+    private async Task CargarVariables(ChangeEventArgs? e = null)
+    {
+        if (string.IsNullOrWhiteSpace(selectedIndicadorId)) return;
+
+        var parametros = new Dictionary<string, object> {
+            ["fkidindicador"] = selectedIndicadorId
+        };
+
+        var resultado = await servicioEntidad.EjecutarProcedimientoAsync(
+            PROYECTO, TABLA, "sp_GetVariablesPorIndicador", parametros
+        ) ?? new();
+
+        variablesAsignadas = resultado.Select(r => new VariableAsignada
+        {
+            Nombre = ObtenerValor(r, "nombre"),
+            Dato = double.TryParse(ObtenerValor(r, "dato"), out var valor) ? valor : 0
+        }).ToList();
+    }
+
+    private string ObtenerValor(Dictionary<string, object> dic, string clave)
+    {
+        if (dic.TryGetValue(clave, out var val) && val != null)
+            return val.ToString()!;
+        return string.Empty;
+    }
+}
