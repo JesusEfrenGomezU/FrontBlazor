@@ -1,52 +1,56 @@
-@page "/variable"
-@using System.Collections.Generic  
-@using FrontBlazor.Services  
-@inject ServicioEntidad servicioEntidad  
+@page "/resultadoindicador"
+@using System.Collections.Generic
+@using System.Net.Http.Json
+@using System.Text.Json
+@using FrontBlazor.Services
+@inject ServicioEntidad servicioEntidad
 @inject NavigationManager navegacionManager
 @inject IJSRuntime JS
 
-<PageTitle>Listado de Variables</PageTitle>
+<PageTitle>Resultado Indicador</PageTitle>
 
-<h1>Variable</h1>
+<h1>Resultado Indicador</h1>
 
-<!-- BUSCADOR -->
 <div class="input-group mb-3">
-    <input type="text" class="form-control" placeholder="Buscar variable (nombre o email)..." @bind="searchTerm" />
-    <button class="btn btn-outline-secondary" type="button" @onclick="BuscarVariable">
+    <input type="text" class="form-control" placeholder="Buscar por indicador..." @bind="searchTerm" />
+    <button class="btn btn-outline-secondary" type="button" @onclick="Buscar">
         <i class="bi bi-search"></i>
     </button>
 </div>
 
-<!-- BOTÓN CREAR -->
 <button class="btn btn-primary mb-3 @(canCreate ? "" : "opacity-50")"
-    disabled="@( !canCreate )"
-    @onclick="() => { if (canCreate) ShowCreateModal(); }">
-    <i class="bi bi-plus-lg"></i> Crear Variable
+        disabled="@( !canCreate )"
+        @onclick="() => { if (canCreate) ShowCreateModal(); }">
+    <i class="bi bi-plus-lg"></i> Crear Resultado
 </button>
 
-<!-- MODAL CREAR -->
 @if (showCreateModal)
 {
     <div class="overlay">
         <div class="popup">
-            <h3>Nueva Variable</h3>
+            <h3>Nuevo Resultado Indicador</h3>
 
             <div class="form-group">
-                <label>Nombre</label>
-                <input class="form-control" @bind="newNombre" placeholder="Nombre" />
-            </div>
-
-            <div class="form-group">
-                <label>Usuario</label>
-                <select class="form-select" @bind="newFkemailusuario">
-                    <option value="">--Seleccione un usuario--</option>
-                    @foreach (var usuario in listaUsuarios)
+                <label>Indicador</label>
+                <select class="form-select" @bind="newFkidIndicador">
+                    <option value="0">--Seleccione--</option>
+                    @foreach (var item in listaIndicador)
                     {
-                        <option value="@ObtenerValor(usuario, "email")">
-                            @ObtenerValor(usuario, "nombre") (@ObtenerValor(usuario, "email"))
+                        <option value="@int.Parse(ObtenerValor(item, "id"))">
+                            @ObtenerValor(item, "nombre")
                         </option>
                     }
                 </select>
+            </div>
+
+            <div class="form-group">
+                <label>Resultado</label>
+                <input type="number" step="0.01" class="form-control" @bind="newResultado" />
+            </div>
+
+            <div class="form-group">
+                <label>Fecha de Cálculo</label>
+                <input type="datetime-local" class="form-control" @bind="newFechaCalculo" />
             </div>
 
             <div class="popup-actions">
@@ -57,14 +61,13 @@
     </div>
 }
 
-<!-- LISTADO -->
 @if (cargando)
 {
     <p><em>Cargando...</em></p>
 }
 else if (tablas == null || tablas.Count == 0)
 {
-    <p>No hay variables disponibles.</p>
+    <p>No hay resultados disponibles.</p>
 }
 else
 {
@@ -73,27 +76,27 @@ else
             <thead>
                 <tr>
                     <th>ID</th>
-                    <th>Nombre</th>
-                    <th>Fecha Creación</th>
-                    <th>Email Usuario</th>
+                    <th>Indicador</th>
+                    <th>Resultado</th>
+                    <th>Fecha de Cálculo</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var variable in tablas)
+                @foreach (var res in tablas)
                 {
                     <tr>
-                        <td>@ObtenerValor(variable, "id")</td>
-                        <td>@ObtenerValor(variable, "nombre")</td>
-                        <td>@ObtenerValor(variable, "fechacreacion")</td>
-                        <td>@ObtenerForanea(listaUsuarios, ObtenerValor(variable, "fkemailusuario"), "nombre")</td>
+                        <td>@ObtenerValor(res, "id")</td>
+                        <td>@ObtenerForanea(listaIndicador, ObtenerValor(res, "fkidindicador"), "nombre")</td>
+                        <td>@ObtenerValor(res, "resultado")</td>
+                        <td>@DateTime.Parse(ObtenerValor(res, "fechacalculo")).ToString("yyyy-MM-dd HH:mm")</td>
                         <td>
                             <button class="btn btn-primary btn-sm me-1 @(canEdit ? "" : "opacity-50")"
-                                @onclick="() => { if (canEdit) EditarVariable(variable); }">
+                                    @onclick="() => { if (canEdit) Editar(res); }">
                                 <i class="bi bi-pencil-fill"></i>
                             </button>
                             <button class="btn btn-danger btn-sm @(canDelete ? "" : "opacity-50")"
-                                @onclick="() => { if (canDelete) EliminarVariable(variable); }">
+                                    @onclick="() => { if (canDelete) Eliminar(res); }">
                                 <i class="bi bi-trash-fill"></i>
                             </button>
                         </td>
@@ -104,28 +107,33 @@ else
     </div>
 }
 
-<!-- MODAL EDICIÓN -->
 @if (showEditModal)
 {
     <div class="overlay">
         <div class="popup">
-            <h3>Editar Variable</h3>
+            <h3>Editar Resultado Indicador</h3>
 
             <div class="form-group">
-                <label>Nombre</label>
-                <input class="form-control" @bind="editNombre" />
-            </div>
-            <div class="form-group">
-                <label>Usuario</label>
-                <select class="form-select" @bind="editFkemailusuario">
-                    <option value="">--Seleccione un usuario--</option>
-                    @foreach (var usuario in listaUsuarios)
+                <label>Indicador</label>
+                <select class="form-select" @bind="editFkidIndicador">
+                    <option value="0">--Seleccione--</option>
+                    @foreach (var item in listaIndicador)
                     {
-                        <option value="@ObtenerValor(usuario, "email")">
-                            @ObtenerValor(usuario, "nombre") (@ObtenerValor(usuario, "email"))
+                        <option value="@int.Parse(ObtenerValor(item, "id"))">
+                            @ObtenerValor(item, "nombre")
                         </option>
                     }
                 </select>
+            </div>
+
+            <div class="form-group">
+                <label>Resultado</label>
+                <input type="number" step="0.01" class="form-control" @bind="editResultado" />
+            </div>
+
+            <div class="form-group">
+                <label>Fecha de Cálculo</label>
+                <input type="datetime-local" class="form-control" @bind="editFechaCalculo" />
             </div>
 
             <div class="popup-actions">
@@ -138,25 +146,33 @@ else
 
 @code {
     private const string PROYECTO = "proyecto";
-    private const string TABLA = "variable";
+    private const string TABLA = "resultadoindicador";
 
     private List<Dictionary<string, object>> tablas = new();
-    private List<Dictionary<string, object>> listaUsuarios = new();
+    private List<Dictionary<string, object>> listaIndicador = new();
     private string searchTerm = "";
 
     private bool cargando = true;
     private bool showCreateModal = false;
     private bool showEditModal = false;
-    private string newNombre = "", newFkemailusuario = "";
-    private string editId = "", editNombre = "", editFkemailusuario = "";
-    private Dictionary<string, object>? variableOriginal;
+
+    private double newResultado;
+    private DateTime newFechaCalculo = DateTime.Today;
+    private int newFkidIndicador;
+
+    private string editId = "";
+    private double editResultado;
+    private DateTime editFechaCalculo;
+    private int editFkidIndicador;
+
+    private Dictionary<string, object>? original;
 
     private string[] userRoles = Array.Empty<string>();
     private bool canCreate, canEdit, canDelete;
 
     protected override async Task OnInitializedAsync()
     {
-        listaUsuarios = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "usuario") ?? new();
+        listaIndicador = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "indicador") ?? new();
         tablas = await servicioEntidad.ObtenerTodosAsync(PROYECTO, TABLA) ?? new();
         cargando = false;
     }
@@ -167,8 +183,8 @@ else
         {
             userRoles = await JS.InvokeAsync<string[]>("eval", @"
                 Object.keys(sessionStorage)
-                     .filter(k => k.startsWith('rol_'))
-                     .map(k => sessionStorage.getItem(k));");
+                 .filter(k => k.startsWith('rol_'))
+                 .map(k => sessionStorage.getItem(k));");
 
             canCreate = userRoles.Contains("admin");
             canEdit = canCreate || userRoles.Contains("Validador");
@@ -178,16 +194,13 @@ else
         }
     }
 
-    private void BuscarVariable()
+    private void Buscar()
     {
         if (string.IsNullOrWhiteSpace(searchTerm)) return;
-
         var term = searchTerm.ToLowerInvariant();
-        tablas = tablas
-            .Where(t =>
-                ObtenerValor(t, "nombre").ToLowerInvariant().Contains(term) ||
-                ObtenerValor(t, "fkemailusuario").ToLowerInvariant().Contains(term)
-            ).ToList();
+        tablas = tablas.Where(t =>
+            ObtenerForanea(listaIndicador, ObtenerValor(t, "fkidindicador"), "nombre").ToLowerInvariant().Contains(term)
+        ).ToList();
     }
 
     private void ShowCreateModal() => showCreateModal = true;
@@ -197,8 +210,9 @@ else
     {
         var entidad = new Dictionary<string, object>
         {
-            ["nombre"] = newNombre,
-            ["fkemailusuario"] = newFkemailusuario
+            ["fkidindicador"] = newFkidIndicador,
+            ["resultado"] = newResultado,
+            ["fechacalculo"] = newFechaCalculo.ToString("yyyy-MM-ddTHH:mm:ss")
         };
 
         var ok = await servicioEntidad.CrearAsync(PROYECTO, TABLA, entidad);
@@ -209,38 +223,40 @@ else
         }
     }
 
-    private void EditarVariable(Dictionary<string, object> variable)
+    private void Editar(Dictionary<string, object> item)
     {
-        variableOriginal = variable;
-        editId = ObtenerValor(variable, "id");
-        editNombre = ObtenerValor(variable, "nombre");
-        editFkemailusuario = ObtenerValor(variable, "fkemailusuario");
+        original = item;
+        editId = ObtenerValor(item, "id");
+        editFkidIndicador = int.Parse(ObtenerValor(item, "fkidindicador"));
+        editResultado = double.Parse(ObtenerValor(item, "resultado"));
+        editFechaCalculo = DateTime.Parse(ObtenerValor(item, "fechacalculo"));
         showEditModal = true;
     }
 
     private async Task OnSubmitEditAsync()
     {
-        if (variableOriginal == null) return;
+        if (original == null) return;
 
         var entidad = new Dictionary<string, object>
         {
-            ["nombre"] = editNombre,
-            ["fkemailusuario"] = editFkemailusuario
+            ["fkidindicador"] = editFkidIndicador,
+            ["resultado"] = editResultado,
+            ["fechacalculo"] = editFechaCalculo.ToString("yyyy-MM-ddTHH:mm:ss")
         };
 
         var ok = await servicioEntidad.ActualizarAsync(PROYECTO, TABLA, "id", editId, entidad);
         if (ok)
         {
             foreach (var kv in entidad)
-                variableOriginal[kv.Key] = kv.Value;
+                original[kv.Key] = kv.Value;
             showEditModal = false;
         }
     }
 
-    private void EliminarVariable(Dictionary<string, object> variable)
+    private void Eliminar(Dictionary<string, object> item)
     {
-        var id = ObtenerValor(variable, "id");
-        tablas.Remove(variable);
+        var id = ObtenerValor(item, "id");
+        tablas.Remove(item);
         _ = servicioEntidad.EliminarAsync(PROYECTO, TABLA, "id", id);
     }
 
@@ -255,13 +271,12 @@ else
     {
         if (string.IsNullOrWhiteSpace(id)) return string.Empty;
         var item = lista.FirstOrDefault(x =>
-            x.TryGetValue("email", out var v) && v?.ToString() == id);
+            x.TryGetValue("id", out var v) && v?.ToString() == id);
         if (item != null && item.TryGetValue(campo, out var f))
             return f?.ToString() ?? string.Empty;
         return string.Empty;
     }
 }
-
 <style>
 .overlay {
     position: fixed;

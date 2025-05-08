@@ -1,0 +1,110 @@
+@page "/variablesporindicador"
+@using System.Collections.Generic
+@using System.Linq
+@using System.Net.Http.Json
+@using System.Text.Json
+@using FrontBlazor.Services
+@inject ServicioEntidad servicioEntidad
+@inject NavigationManager navegacionManager
+@inject IJSRuntime JS
+
+<PageTitle>Variables por Indicador</PageTitle>
+
+<h1>Variables por Indicador</h1>
+
+<!-- BUSCADOR -->
+<div class="input-group mb-3">
+    <input type="text" class="form-control" placeholder="Buscar..." @bind="searchTerm" />
+    <button class="btn btn-outline-secondary" @onclick="Buscar">
+        <i class="bi bi-search"></i>
+    </button>
+</div>
+
+@if (cargando)
+{
+    <p><em>Cargando...</em></p>
+}
+else if (tablas == null || tablas.Count == 0)
+{
+    <p>No hay datos disponibles.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Variable</th>
+                    <th>Indicador</th>
+                    <th>Dato</th>
+                    <th>Usuario</th>
+                    <th>Fecha Dato</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in tablas)
+                {
+                    <tr>
+                        <td>@ObtenerValor(item, "id")</td>
+                        <td>@ObtenerForanea(listaVariable, ObtenerValor(item, "fkidvariable"), "nombre")</td>
+                        <td>@ObtenerForanea(listaIndicador, ObtenerValor(item, "fkidindicador"), "nombre")</td>
+                        <td>@ObtenerValor(item, "dato")</td>
+                        <td>@ObtenerValor(item, "fkemailusuario")</td>
+                        <td>@DateTime.Parse(ObtenerValor(item, "fechadato")).ToString("yyyy-MM-dd HH:mm")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private const string PROYECTO = "proyecto";
+    private const string TABLA = "variablesporindicador";
+
+    private List<Dictionary<string, object>> tablas = new();
+    private List<Dictionary<string, object>> listaVariable = new();
+    private List<Dictionary<string, object>> listaIndicador = new();
+    private string searchTerm = string.Empty;
+
+    private bool cargando = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        listaVariable    = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "variable") ?? new();
+        listaIndicador   = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "indicador") ?? new();
+        tablas            = await servicioEntidad.ObtenerTodosAsync(PROYECTO, TABLA) ?? new();
+        cargando          = false;
+    }
+
+    private void Buscar()
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm)) return;
+        var term = searchTerm.ToLowerInvariant();
+
+        tablas = tablas.Where(t =>
+            ObtenerForanea(listaVariable, ObtenerValor(t, "fkidvariable"), "nombre").ToLowerInvariant().Contains(term)
+         || ObtenerForanea(listaIndicador, ObtenerValor(t, "fkidindicador"), "nombre").ToLowerInvariant().Contains(term)
+         || ObtenerValor(t, "dato").ToLowerInvariant().Contains(term)
+         || ObtenerValor(t, "fkemailusuario").ToLowerInvariant().Contains(term)
+        ).ToList();
+    }
+
+    private string ObtenerValor(Dictionary<string, object> dic, string clave)
+    {
+        if (dic.TryGetValue(clave, out var val) && val != null && val.ToString() != "0")
+            return val.ToString()!;
+        return string.Empty;
+    }
+
+    private string ObtenerForanea(List<Dictionary<string, object>> lista, string id, string campo)
+    {
+        if (string.IsNullOrWhiteSpace(id)) return string.Empty;
+        var item = lista.FirstOrDefault(x =>
+            x.TryGetValue("id", out var v) && v?.ToString() == id);
+        if (item != null && item.TryGetValue(campo, out var f))
+            return f?.ToString() ?? string.Empty;
+        return string.Empty;
+    }
+}

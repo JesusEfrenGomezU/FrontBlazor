@@ -1,0 +1,98 @@
+@page "/represenvisualporindicador"
+@using System.Collections.Generic
+@using System.Linq
+@using FrontBlazor.Services
+@using Microsoft.JSInterop
+@inject ServicioEntidad servicioEntidad
+@inject NavigationManager navegacionManager
+@inject IJSRuntime JS
+
+<PageTitle>Representaciones por Indicador</PageTitle>
+
+<h1>Representaciones Visuales por Indicador</h1>
+
+<!-- BUSCADOR -->
+<div class="input-group mb-3">
+    <input type="text" class="form-control" placeholder="Buscar indicador o representación..." @bind="searchTerm" />
+    <button class="btn btn-outline-secondary" @onclick="Buscar">
+        <i class="bi bi-search"></i>
+    </button>
+</div>
+
+@if (cargando)
+{
+    <p><em>Cargando...</em></p>
+}
+else if (tablas == null || tablas.Count == 0)
+{
+    <p>No hay asociaciones disponibles.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Indicador</th>
+                    <th>Representación Visual</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in tablas)
+                {
+                    <tr>
+                        <td>@ObtenerForanea(listaIndicador, ObtenerValor(item, "fkidindicador"), "nombre")</td>
+                        <td>@ObtenerForanea(listaRepresen, ObtenerValor(item, "fkidrepresenvisual"), "nombre")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private const string PROYECTO = "proyecto";
+    private const string TABLA = "represenvisualporindicador";
+
+    private List<Dictionary<string, object>> tablas = new();
+    private List<Dictionary<string, object>> listaIndicador = new();
+    private List<Dictionary<string, object>> listaRepresen = new();
+    private string searchTerm = string.Empty;
+    private bool cargando = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        listaIndicador = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "indicador") ?? new();
+        listaRepresen   = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "represenvisual") ?? new();
+        tablas           = await servicioEntidad.ObtenerTodosAsync(PROYECTO, TABLA) ?? new();
+        cargando         = false;
+    }
+
+    private void Buscar()
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm)) return;
+        var term = searchTerm.ToLowerInvariant();
+
+        tablas = tablas.Where(t =>
+            ObtenerForanea(listaIndicador, ObtenerValor(t, "fkidindicador"), "nombre").ToLowerInvariant().Contains(term)
+         || ObtenerForanea(listaRepresen, ObtenerValor(t, "fkidrepresenvisual"), "nombre").ToLowerInvariant().Contains(term)
+        ).ToList();
+    }
+
+    private string ObtenerValor(Dictionary<string, object> dic, string clave)
+    {
+        return dic.TryGetValue(clave, out var val) && val != null
+            ? val.ToString()!
+            : string.Empty;
+    }
+
+    private string ObtenerForanea(List<Dictionary<string, object>> lista, string id, string campo)
+    {
+        if (string.IsNullOrWhiteSpace(id)) return string.Empty;
+        var item = lista.FirstOrDefault(x =>
+            x.TryGetValue("id", out var v) && v?.ToString() == id);
+        if (item != null && item.TryGetValue(campo, out var f))
+            return f?.ToString() ?? string.Empty;
+        return string.Empty;
+    }
+}

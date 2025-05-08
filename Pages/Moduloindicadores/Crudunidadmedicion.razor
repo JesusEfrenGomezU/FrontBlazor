@@ -1,0 +1,237 @@
+@page "/unidadmedicion"
+@using System.Collections.Generic
+@using System.Net.Http.Json
+@using System.Text.Json
+@using FrontBlazor.Services
+@inject ServicioEntidad servicioEntidad
+@inject NavigationManager navegacionManager
+@inject IJSRuntime JS
+
+<PageTitle>Listado de Unidades de Medición</PageTitle>
+
+<h1>Unidad de Medición</h1>
+
+<!-- BUSCADOR -->
+<div class="input-group mb-3">
+    <input type="text" class="form-control" placeholder="Buscar unidad..." @bind="searchTerm" />
+    <button class="btn btn-outline-secondary" @onclick="BuscarUnidad">
+        <i class="bi bi-search"></i>
+    </button>
+</div>
+
+<!-- BOTÓN CREAR -->
+<button class="btn btn-primary mb-3 @(canCreate ? "" : "opacity-50")"
+        disabled="@( !canCreate )"
+        @onclick="() => { if (canCreate) ShowCreateModal(); }">
+    <i class="bi bi-plus-lg"></i> Crear Unidad
+</button>
+
+<!-- MODAL CREAR -->
+@if (showCreateModal)
+{
+    <div class="overlay">
+        <div class="popup">
+            <h3>Nueva Unidad de Medición</h3>
+            <div class="form-group">
+                <label>Descripción</label>
+                <input class="form-control" @bind="newDescripcion" />
+            </div>
+            <div class="popup-actions">
+                <button class="btn btn-success" @onclick="OnSubmitCreateAsync">Guardar</button>
+                <button class="btn btn-secondary" @onclick="HideCreateModal">Cancelar</button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- LISTADO -->
+@if (cargando)
+{
+    <p><em>Cargando...</em></p>
+}
+else if (tablas == null || tablas.Count == 0)
+{
+    <p>No hay unidades disponibles.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Descripción</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var unidad in tablas)
+                {
+                    <tr>
+                        <td>@ObtenerValor(unidad, "id")</td>
+                        <td>@ObtenerValor(unidad, "descripcion")</td>
+                        <td>
+                            <button class="btn btn-primary btn-sm me-1 @(canEdit ? "" : "opacity-50")"
+                                    @onclick="() => { if (canEdit) EditarUnidad(unidad); }">
+                                <i class="bi bi-pencil-fill"></i>
+                            </button>
+                            <button class="btn btn-danger btn-sm @(canDelete ? "" : "opacity-50")"
+                                    @onclick="() => { if (canDelete) EliminarUnidad(unidad); }">
+                                <i class="bi bi-trash-fill"></i>
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+<!-- MODAL EDICIÓN -->
+@if (showEditModal)
+{
+    <div class="overlay">
+        <div class="popup">
+            <h3>Editar Unidad</h3>
+            <div class="form-group">
+                <label>Descripción</label>
+                <input class="form-control" @bind="editDescripcion" />
+            </div>
+            <div class="popup-actions">
+                <button class="btn btn-success" @onclick="OnSubmitEditAsync">Guardar</button>
+                <button class="btn btn-secondary" @onclick="() => showEditModal = false">Cancelar</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private const string PROYECTO = "proyecto";
+    private const string TABLA = "unidadmedicion";
+
+    private List<Dictionary<string, object>> tablas = new();
+    private string searchTerm = "";
+
+    private bool cargando = true;
+    private bool showCreateModal = false;
+    private bool showEditModal = false;
+
+    private string newDescripcion = "";
+    private string editId = "", editDescripcion = "";
+    private Dictionary<string, object>? unidadOriginal;
+
+    private string[] userRoles = Array.Empty<string>();
+    private bool canCreate, canEdit, canDelete;
+
+    protected override async Task OnInitializedAsync()
+    {
+        tablas = await servicioEntidad.ObtenerTodosAsync(PROYECTO, TABLA) ?? new();
+        cargando = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            userRoles = await JS.InvokeAsync<string[]>("eval", @"
+                Object.keys(sessionStorage)
+                     .filter(k => k.startsWith('rol_'))
+                     .map(k => sessionStorage.getItem(k));");
+
+            canCreate = userRoles.Contains("admin");
+            canEdit = canCreate || userRoles.Contains("Validador");
+            canDelete = canCreate;
+
+            StateHasChanged();
+        }
+    }
+
+    private void BuscarUnidad()
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm)) return;
+
+        var term = searchTerm.ToLowerInvariant();
+        tablas = tablas
+            .Where(t => ObtenerValor(t, "descripcion").ToLowerInvariant().Contains(term))
+            .ToList();
+    }
+
+    private void ShowCreateModal() => showCreateModal = true;
+    private void HideCreateModal() => showCreateModal = false;
+
+    private async Task OnSubmitCreateAsync()
+    {
+        var entidad = new Dictionary<string, object> { ["descripcion"] = newDescripcion };
+        var ok = await servicioEntidad.CrearAsync(PROYECTO, TABLA, entidad);
+        if (ok)
+        {
+            tablas = await servicioEntidad.ObtenerTodosAsync(PROYECTO, TABLA) ?? new();
+            HideCreateModal();
+        }
+    }
+
+    private void EditarUnidad(Dictionary<string, object> unidad)
+    {
+        unidadOriginal = unidad;
+        editId = ObtenerValor(unidad, "id");
+        editDescripcion = ObtenerValor(unidad, "descripcion");
+        showEditModal = true;
+    }
+
+    private async Task OnSubmitEditAsync()
+    {
+        if (unidadOriginal == null) return;
+
+        var entidad = new Dictionary<string, object> { ["descripcion"] = editDescripcion };
+        var ok = await servicioEntidad.ActualizarAsync(PROYECTO, TABLA, "id", editId, entidad);
+        if (ok)
+        {
+            foreach (var kv in entidad)
+                unidadOriginal[kv.Key] = kv.Value;
+            showEditModal = false;
+        }
+    }
+
+    private void EliminarUnidad(Dictionary<string, object> unidad)
+    {
+        var id = ObtenerValor(unidad, "id");
+        tablas.Remove(unidad);
+        _ = servicioEntidad.EliminarAsync(PROYECTO, TABLA, "id", id);
+    }
+
+    private string ObtenerValor(Dictionary<string, object> dic, string clave)
+    {
+        if (dic.TryGetValue(clave, out var val) && val != null && val.ToString() != "0")
+            return val.ToString()!;
+        return string.Empty;
+    }
+}
+
+<style>
+.overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000;
+}
+.popup {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    width: 400px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+.form-group {
+    margin-bottom: 15px;
+}
+.popup-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 10px;
+}
+</style>
