@@ -1,25 +1,57 @@
 @page "/fuente"
-@using System.Collections.Generic  
-@using System.Threading.Tasks
-@using Services  
-@inject ServicioEntidad servicioEntidad  
-@inject NavigationManager navegacionManager  
+@using System.Collections.Generic
+@using FrontBlazor.Services
+@inject ServicioEntidad servicioEntidad
+@inject NavigationManager navegacionManager
+@inject IJSRuntime JS
 
-<PageTitle>Lista de Fuentes</PageTitle>
+<PageTitle>Fuentes</PageTitle>
 
-<h1>Fuentes</h1>
+<h1>Fuente</h1>
 
-<button class="btn btn-success mb-3" @onclick="CrearFuente">  
-    <i class="bi bi-plus-lg"></i> Crear Fuente  
+<!-- BUSCADOR -->
+<div class="input-group mb-3">
+    <input type="text" class="form-control" placeholder="Buscar por nombre..." @bind="searchTerm" />
+    <button class="btn btn-outline-secondary" type="button" @onclick="BuscarFuente">
+        <i class="bi bi-search"></i>
+    </button>
+</div>
+
+<!-- BOTÓN CREAR -->
+<button class="btn btn-primary mb-3 @(canCreate ? "" : "opacity-50")"
+    disabled="@( !canCreate )"
+    @onclick="() => { if (canCreate) ShowCreateModal(); }">
+    <i class="bi bi-plus-lg"></i> Crear Fuente
 </button>
 
+<!-- MODAL CREAR -->
+@if (showCreateModal)
+{
+    <div class="overlay">
+        <div class="popup">
+            <h3>Nueva Fuente</h3>
+
+            <div class="form-group">
+                <label>Nombre</label>
+                <input class="form-control" @bind="newNombre" placeholder="Nombre" />
+            </div>
+
+            <div class="popup-actions">
+                <button class="btn btn-success" @onclick="OnSubmitCreateAsync">Guardar</button>
+                <button class="btn btn-secondary" @onclick="HideCreateModal">Cancelar</button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- LISTADO -->
 @if (cargando)
 {
-    <p><em>Cargando...</em></p>  
+    <p><em>Cargando...</em></p>
 }
 else if (tablas == null || tablas.Count == 0)
 {
-    <p>No hay fuentes disponibles.</p>  
+    <p>No hay fuentes disponibles.</p>
 }
 else
 {
@@ -29,23 +61,24 @@ else
                 <tr>
                     <th>ID</th>
                     <th>Nombre</th>
+                    <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var tabla in tablas)
+                @foreach (var item in tablas)
                 {
                     <tr>
-                        <td>@ObtenerValor(tabla, "id")</td>
-                        <td>@ObtenerValor(tabla, "nombre")</td>
-                        <td class="text-center" style="white-space: nowrap;">
-                            <div class="d-inline-flex">
-                                <button class="btn btn-primary btn-sm me-1" @onclick="() => EditarFuente(tabla)" title="Editar">
-                                    <i class="bi bi-pencil-fill"></i>
-                                </button>
-                                <button class="btn btn-danger btn-sm" @onclick="() => EliminarFuente(tabla)" title="Eliminar">
-                                    <i class="bi bi-trash-fill"></i>
-                                </button>
-                            </div>
+                        <td>@ObtenerValor(item, "id")</td>
+                        <td>@ObtenerValor(item, "nombre")</td>
+                        <td>
+                            <button class="btn btn-primary btn-sm me-1 @(canEdit ? "" : "opacity-50")"
+                                @onclick="() => { if (canEdit) EditarFuente(item); }">
+                                <i class="bi bi-pencil-fill"></i>
+                            </button>
+                            <button class="btn btn-danger btn-sm @(canDelete ? "" : "opacity-50")"
+                                @onclick="() => { if (canDelete) EliminarFuente(item); }">
+                                <i class="bi bi-trash-fill"></i>
+                            </button>
                         </td>
                     </tr>
                 }
@@ -54,78 +87,159 @@ else
     </div>
 }
 
-@if (!string.IsNullOrEmpty(errorMensaje))
+<!-- MODAL EDICIÓN -->
+@if (showEditModal)
 {
-    <div class="alert alert-danger">
-        Error: @errorMensaje
+    <div class="overlay">
+        <div class="popup">
+            <h3>Editar Fuente</h3>
+
+            <div class="form-group">
+                <label>Nombre</label>
+                <input class="form-control" @bind="editNombre" />
+            </div>
+
+            <div class="popup-actions">
+                <button class="btn btn-success" @onclick="OnSubmitEditAsync">Guardar</button>
+                <button class="btn btn-secondary" @onclick="() => showEditModal = false">Cancelar</button>
+            </div>
+        </div>
     </div>
 }
 
 @code {
-    private List<Dictionary<string, object>> tablas = new();
-    private bool cargando = true;
-    private string? errorMensaje;
-
     private const string PROYECTO = "proyecto";
     private const string TABLA = "fuente";
 
+    private List<Dictionary<string, object>> tablas = new();
+    private string searchTerm = "";
+
+    private bool cargando = true;
+    private bool showCreateModal = false;
+    private bool showEditModal = false;
+    private string newNombre = "";
+    private string editId = "", editNombre = "";
+    private Dictionary<string, object>? original;
+
+    private string[] userRoles = Array.Empty<string>();
+    private bool canCreate, canEdit, canDelete;
+
     protected override async Task OnInitializedAsync()
     {
-        await CargarTabla();
+        tablas = await servicioEntidad.ObtenerTodosAsync(PROYECTO, TABLA) ?? new();
+        cargando = false;
     }
 
-    private async Task CargarTabla()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        cargando = true;
-        errorMensaje = null;
-        try
+        if (firstRender)
         {
-            var resultado = await servicioEntidad.ObtenerTodosAsync(PROYECTO, TABLA);
-            tablas = resultado ?? new List<Dictionary<string, object>>();
+            userRoles = await JS.InvokeAsync<string[]>("eval", @"
+                Object.keys(sessionStorage)
+                     .filter(k => k.startsWith('rol_'))
+                     .map(k => sessionStorage.getItem(k));");
+
+            canCreate = userRoles.Contains("admin");
+            canEdit = canCreate || userRoles.Contains("Validador");
+            canDelete = canCreate;
+
+            StateHasChanged();
         }
-        catch (Exception ex)
+    }
+
+    private void BuscarFuente()
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm)) return;
+
+        var term = searchTerm.ToLowerInvariant();
+        tablas = tablas
+            .Where(t => ObtenerValor(t, "nombre").ToLowerInvariant().Contains(term))
+            .ToList();
+    }
+
+    private void ShowCreateModal() => showCreateModal = true;
+    private void HideCreateModal() => showCreateModal = false;
+
+    private async Task OnSubmitCreateAsync()
+    {
+        var entidad = new Dictionary<string, object>
         {
-            errorMensaje = $"Error al cargar: {ex.Message}";
-        }
-        finally
+            ["nombre"] = newNombre
+        };
+
+        var ok = await servicioEntidad.CrearAsync(PROYECTO, TABLA, entidad);
+        if (ok)
         {
-            cargando = false;
+            tablas = await servicioEntidad.ObtenerTodosAsync(PROYECTO, TABLA) ?? new();
+            HideCreateModal();
         }
+    }
+
+    private void EditarFuente(Dictionary<string, object> item)
+    {
+        original = item;
+        editId = ObtenerValor(item, "id");
+        editNombre = ObtenerValor(item, "nombre");
+        showEditModal = true;
+    }
+
+    private async Task OnSubmitEditAsync()
+    {
+        if (original == null) return;
+
+        var entidad = new Dictionary<string, object>
+        {
+            ["nombre"] = editNombre
+        };
+
+        var ok = await servicioEntidad.ActualizarAsync(PROYECTO, TABLA, "id", editId, entidad);
+        if (ok)
+        {
+            foreach (var kv in entidad)
+                original[kv.Key] = kv.Value;
+            showEditModal = false;
+        }
+    }
+
+    private void EliminarFuente(Dictionary<string, object> item)
+    {
+        var id = ObtenerValor(item, "id");
+        tablas.Remove(item);
+        _ = servicioEntidad.EliminarAsync(PROYECTO, TABLA, "id", id);
     }
 
     private string ObtenerValor(Dictionary<string, object> dic, string clave)
     {
-        if (dic != null && dic.TryGetValue(clave, out var val))
-        {
-            return val?.ToString() ?? string.Empty;
-        }
+        if (dic.TryGetValue(clave, out var val) && val != null && val.ToString() != "0")
+            return val.ToString()!;
         return string.Empty;
     }
-
-    private void CrearFuente()
-    {
-        navegacionManager.NavigateTo("/fuente/crear");
-    }
-
-    private void EditarFuente(Dictionary<string, object> tabla)
-    {
-        var id = ObtenerValor(tabla, "id");
-        navegacionManager.NavigateTo($"/fuente/editar/{id}");
-    }
-
-
-
-    private async void EliminarFuente(Dictionary<string, object> tabla)
-    {
-        var id = ObtenerValor(tabla, "id");
-        bool eliminado = await servicioEntidad.EliminarAsync(PROYECTO, TABLA, "id", id);
-        if (eliminado)
-        {
-            tablas.Remove(tabla);
-        }
-        else
-        {
-            errorMensaje = $"No se pudo eliminar la fuente con ID {id}.";
-        }
-    }
 }
+<style>
+.overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000;
+}
+.popup {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    width: 400px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+.form-group {
+    margin-bottom: 15px;
+}
+.popup-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 10px;
+}
+</style>

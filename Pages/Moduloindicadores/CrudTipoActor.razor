@@ -3,11 +3,13 @@
 @using FrontBlazor.Services  
 @inject ServicioEntidad servicioEntidad  
 @inject IJSRuntime JS
-@*@inherits ValidacionAcceso*@
+
+
 
 <PageTitle>Tipo de Actor</PageTitle>
 
 <h1>Tipo Actor</h1>
+
 
 <!-- BUSCADOR -->
 <div class="input-group mb-3">
@@ -61,7 +63,7 @@ else
                 <tr>
                     <th>ID</th>
                     <th>Nombre</th>
-                    <th>Acciones</th>
+
                 </tr>
             </thead>
             <tbody>
@@ -184,6 +186,7 @@ else
     }
 
     private void EditarTipo(Dictionary<string, object> tipo)
+
     {
         tipoOriginal = tipo;
         editId = ObtenerValor(tipo, "id");
@@ -217,8 +220,37 @@ else
 
     private string ObtenerValor(Dictionary<string, object> dic, string clave)
     {
+
         if (dic.TryGetValue(clave, out var val) && val != null && val.ToString() != "0")
             return val.ToString()!;
         return string.Empty;
     }
 }
+<style>
+.overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000;
+}
+.popup {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    width: 400px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+.form-group {
+    margin-bottom: 15px;
+}
+.popup-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 10px;
+}
+</style>

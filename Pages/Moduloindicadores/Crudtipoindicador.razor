@@ -91,6 +91,10 @@
     private List<Dictionary<string, object>> tiposOriginal = new();
     private string searchTerm = string.Empty;
 
+// Permisos
+    private string[] userRoles = Array.Empty<string>();
+    private bool canCreate, canEdit, canDelete;
+
     private bool showCreateModal = false;
     private string newNombre = string.Empty;
 
@@ -105,7 +109,22 @@
     {
         await CargarDatos();
     }
+ protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            userRoles = await JS.InvokeAsync<string[]>("eval", @"
+                Object.keys(sessionStorage)
+                 .filter(k => k.startsWith('rol_'))
+                 .map(k => sessionStorage.getItem(k));");
 
+            canCreate = userRoles.Contains("admin");
+            canEdit = canCreate || userRoles.Contains("Validador");
+            canDelete = canCreate;
+
+            StateHasChanged();
+        }
+    }
     private async Task CargarDatos()
     {
         tipos = await servicioEntidad.ObtenerTodosAsync("proyecto", "tipoindicador") ?? new();

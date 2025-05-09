@@ -5,8 +5,8 @@
 @using FrontBlazor.Services  
 @inject ServicioEntidad servicioEntidad  
 @inject NavigationManager navegacionManager
-@inject IJSRuntime JS
-@*@inherits ValidacionAcceso*@
+@inject IJSRuntime  JS
+
 
 <PageTitle>Listado Actores</PageTitle>
 
@@ -14,7 +14,7 @@
 
 <!-- BUSCADOR -->
 <div class="input-group mb-3">
-    <input type="text" class="form-control" placeholder="Buscar actor (nombre o tipo)..." @bind="searchTerm" />
+    <input type="text" class="form-control" placeholder="Buscar actor (ID, nombre o tipo)..." @bind="searchTerm" />
     <button class="btn btn-outline-secondary" type="button" @onclick="BuscarActor">
         <i class="bi bi-search"></i>
     </button>
@@ -35,6 +35,10 @@
             <h3>Nuevo Actor</h3>
 
             <div class="form-group">
+                <label>ID</label>
+                <input class="form-control" @bind="newId" placeholder="ID único" />
+            </div>
+            <div class="form-group">
                 <label>Nombre</label>
                 <input class="form-control" @bind="newNombre" placeholder="Nombre" />
             </div>
@@ -52,10 +56,6 @@
                 </select>
             </div>
 
-            <div class="form-group">
-                <label>Nacionalidad</label>
-                <input class="form-control" @bind="newNacionalidad" />
-            </div>
 
             <div class="popup-actions">
                 <button class="btn btn-success" @onclick="OnSubmitCreateAsync">Guardar</button>
@@ -83,7 +83,7 @@ else
                     <th>ID</th>
                     <th>Nombre</th>
                     <th>Tipo</th>
-                    <th>Nacionalidad</th>
+
                     <th>Acciones</th>
                 </tr>
             </thead>
@@ -94,7 +94,7 @@ else
                         <td>@ObtenerValor(actor, "id")</td>
                         <td>@ObtenerValor(actor, "nombre")</td>
                         <td>@ObtenerForanea(listaTipoActor, ObtenerValor(actor, "fkidtipoactor"), "nombre")</td>
-                        <td>@ObtenerValor(actor, "nacionalidad")</td>
+
                         <td>
                             <button class="btn btn-primary btn-sm me-1 @(canEdit ? "" : "opacity-50")"
                                 @onclick="() => { if (canEdit) EditarActor(actor); }">
@@ -120,6 +120,12 @@ else
             <h3>Editar Actor</h3>
 
             <div class="form-group">
+
+                <label>ID</label>
+                <input class="form-control" @bind="editId" disabled />
+            </div>
+            <div class="form-group">
+
                 <label>Nombre</label>
                 <input class="form-control" @bind="editNombre" />
             </div>
@@ -135,10 +141,7 @@ else
                     }
                 </select>
             </div>
-            <div class="form-group">
-                <label>Nacionalidad</label>
-                <input class="form-control" @bind="editNacionalidad" />
-            </div>
+
 
             <div class="popup-actions">
                 <button class="btn btn-success" @onclick="OnSubmitEditAsync">Guardar</button>
@@ -159,10 +162,15 @@ else
     private bool cargando = true;
     private bool showCreateModal = false;
     private bool showEditModal = false;
-    private string newNombre = "", newNacionalidad = "";
+
+
+    private string newId = "";
+    private string newNombre = "";
     private int newFkidTipoActor;
 
-    private string editId = "", editNombre = "", editNacionalidad = "";
+    private string editId = "";
+    private string editNombre = "";
+
     private int editFkidTipoActor;
     private Dictionary<string, object>? actorOriginal;
 
@@ -172,8 +180,10 @@ else
     protected override async Task OnInitializedAsync()
     {
         listaTipoActor = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "tipoactor") ?? new();
-        tablas = await servicioEntidad.ObtenerTodosAsync(PROYECTO, TABLA) ?? new();
-        cargando = false;
+
+        tablas          = await servicioEntidad.ObtenerTodosAsync(PROYECTO, TABLA) ?? new();
+        cargando        = false;
+
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -182,11 +192,13 @@ else
         {
             userRoles = await JS.InvokeAsync<string[]>("eval", @"
                 Object.keys(sessionStorage)
-                 .filter(k => k.startsWith('rol_'))
-                 .map(k => sessionStorage.getItem(k));");
+
+                     .filter(k => k.startsWith('rol_'))
+                     .map(k => sessionStorage.getItem(k));");
 
             canCreate = userRoles.Contains("admin");
-            canEdit = canCreate || userRoles.Contains("Validador");
+            canEdit   = canCreate || userRoles.Contains("Validador");
+
             canDelete = canCreate;
 
             StateHasChanged();
@@ -195,16 +207,17 @@ else
 
     private void BuscarActor()
     {
-        if (string.IsNullOrWhiteSpace(searchTerm))
-        {
-            return;
-        }
+
+        if (string.IsNullOrWhiteSpace(searchTerm)) return;
         var term = searchTerm.ToLowerInvariant();
         tablas = tablas
             .Where(t =>
-                ObtenerValor(t, "nombre").ToLowerInvariant().Contains(term) ||
-                ObtenerForanea(listaTipoActor, ObtenerValor(t, "fkidtipoactor"), "nombre").ToLowerInvariant().Contains(term)
-            ).ToList();
+                ObtenerValor(t, "id").ToLowerInvariant().Contains(term)
+             || ObtenerValor(t, "nombre").ToLowerInvariant().Contains(term)
+             || ObtenerForanea(listaTipoActor, ObtenerValor(t, "fkidtipoactor"), "nombre").ToLowerInvariant().Contains(term)
+            )
+            .ToList();
+
     }
 
     private void ShowCreateModal() => showCreateModal = true;
@@ -214,9 +227,11 @@ else
     {
         var entidad = new Dictionary<string, object>
         {
+
+            ["id"] = newId,
             ["nombre"] = newNombre,
-            ["fkidtipoactor"] = newFkidTipoActor,
-            ["nacionalidad"] = newNacionalidad
+            ["fkidtipoactor"] = newFkidTipoActor
+
         };
 
         var ok = await servicioEntidad.CrearAsync(PROYECTO, TABLA, entidad);
@@ -229,12 +244,14 @@ else
 
     private void EditarActor(Dictionary<string, object> actor)
     {
-        actorOriginal = actor;
-        editId = ObtenerValor(actor, "id");
-        editNombre = ObtenerValor(actor, "nombre");
+
+        actorOriginal     = actor;
+        editId            = ObtenerValor(actor, "id");
+        editNombre        = ObtenerValor(actor, "nombre");
         editFkidTipoActor = int.Parse(ObtenerValor(actor, "fkidtipoactor"));
-        editNacionalidad = ObtenerValor(actor, "nacionalidad");
-        showEditModal = true;
+        showEditModal     = true;
+
+
     }
 
     private async Task OnSubmitEditAsync()
@@ -244,8 +261,9 @@ else
         var entidad = new Dictionary<string, object>
         {
             ["nombre"] = editNombre,
-            ["fkidtipoactor"] = editFkidTipoActor,
-            ["nacionalidad"] = editNacionalidad
+
+            ["fkidtipoactor"] = editFkidTipoActor
+
         };
 
         var ok = await servicioEntidad.ActualizarAsync(PROYECTO, TABLA, "id", editId, entidad);
@@ -266,7 +284,9 @@ else
 
     private string ObtenerValor(Dictionary<string, object> dic, string clave)
     {
-        if (dic.TryGetValue(clave, out var val) && val != null && val.ToString() != "0")
+
+        if (dic.TryGetValue(clave, out var val) && val != null)
+
             return val.ToString()!;
         return string.Empty;
     }
@@ -281,3 +301,32 @@ else
         return string.Empty;
     }
 }
+
+<style>
+.overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000;
+}
+.popup {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    width: 400px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+.form-group {
+    margin-bottom: 15px;
+}
+.popup-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 10px;
+}
+</style>

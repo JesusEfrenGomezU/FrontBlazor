@@ -1,27 +1,76 @@
-@page "/indicador"
-@using System.Collections.Generic  
-@using System.Text.Json  
+@page "/usuario"
+@using System.Collections.Generic
+@using System.Linq
 @using System.Threading.Tasks
-@using Services  
-@inject ServicioEntidad servicioEntidad  
-@inject NavigationManager navegacionManager  
+@using FrontBlazor.Services
+@inject ServicioEntidad servicioEntidad
+@inject NavigationManager navegacionManager
+@inject IJSRuntime JS
 
-<PageTitle>Lista de Tipo indicador</PageTitle>
+<PageTitle>Gestión de Usuarios</PageTitle>
 
-<h1>indicador</h1>
+<h1>Usuarios</h1>
 
-<!-- Botón para crear un nuevo tipo de indicador -->  
-<button class="btn btn-success mb-3" @onclick="CrearTabla">  
-    <i class="bi bi-plus-lg"></i> Crear Tipo Indicador  
+<!-- BUSCADOR -->
+<div class="input-group mb-3">
+    <input type="text" class="form-control" placeholder="Buscar usuario (email o rol)..." @bind="searchTerm" />
+    <button class="btn btn-outline-secondary" @onclick="BuscarUsuario">
+        <i class="bi bi-search"></i>
+    </button>
+</div>
+
+<!-- BOTÓN CREAR -->
+<button class="btn btn-primary mb-3" disabled="@(!canCreate)" @onclick="ShowCreateModal">
+    <i class="bi bi-plus-lg"></i> Crear Usuario
 </button>
 
-@if (cargando)
+<!-- MODAL CREAR -->
+@if (showCreateModal)
 {
-    <p><em>Cargando...</em></p>  
+    <div class="overlay">
+        <div class="popup">
+            <h3>Nuevo Usuario</h3>
+            <div class="form-group">
+                <label>Email</label>
+                <input class="form-control" @bind="newEmail" placeholder="usuario@dominio.com" />
+            </div>
+            <div class="form-group">
+                <label>Contraseña</label>
+                <input type="password" class="form-control" @bind="newContrasena" required />
+            </div>
+            <div class="form-group">
+                <label>Roles</label>
+                <div>
+                    @foreach (var rol in listaRoles)
+                    {
+                        var rolId = int.Parse(ObtenerValor(rol, "id"));
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="chk_@rolId"
+                                   @onchange="e => OnNewRoleChanged(rolId, e.Value)"
+                                   checked="@newFkidRols.Contains(rolId)" />
+                            <label class="form-check-label" for="chk_@rolId">
+                                @ObtenerValor(rol, "nombre")
+                            </label>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="popup-actions">
+                <button class="btn btn-success" @onclick="OnSubmitCreateAsync" disabled="@( !canCreate || string.IsNullOrWhiteSpace(newContrasena) )">Guardar</button>
+                <button class="btn btn-secondary" @onclick="HideCreateModal">Cancelar</button>
+            </div>
+        </div>
+    </div>
 }
-else if (tablas == null || tablas.Count == 0)
+
+<!-- LISTADO -->
+@if (loading)
 {
-    <p>No hay tipos disponibles.</p>  
+    <p><em>Cargando...</em></p>
+}
+else if (usuarios == null || usuarios.Count == 0)
+{
+    <p>No hay usuarios registrados.</p>
 }
 else
 {
@@ -29,54 +78,29 @@ else
         <table class="table table-striped">
             <thead>
                 <tr>
-                    <th>ID</th>
-                    <th>codigo</th>
-                    <th>Nombre</th>
-                    <th>objetivo</th>
-                    <th>alcance</th>
-                    <th>formula</th>
-                    <th>tipoindicador</th>
-                    <th>unidadmedicion</th>
-                    <th>meta</th>
-                    <th>sentido</th>
-                    <th>frecuencia</th>
-                    <th>articulo</th>
-                    <th>literal</th>
-                    <th>numeral</th>
-                    <th>paragrafo</th>
-                    
-                    <th class="text-center" style="white-space: nowrap;">Acciones</th>
+                    <th>Email</th>
+                    <th>Roles</th>
+                    <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var tabla in tablas)
+                @foreach (var user in usuarios)
                 {
                     <tr>
-                        <td>@ObtenerValor(tabla, "id")</td>
-                        <td>@ObtenerValor(tabla, "codigo")</td>
-                        <td>@ObtenerValor(tabla, "nombre")</td>
-                        <td>@ObtenerValor(tabla, "objetivo")</td>
-                        <td>@ObtenerValor(tabla, "alcance")</td>
-                        <td>@ObtenerValor(tabla, "formula")</td>
-                        <td>@ObtenerValor(tabla, "fkidtipoindicador")</td>
-                        <td>@ObtenerValor(tabla, "fkidunidadmedicion")</td>
-                        <td>@ObtenerValor(tabla, "meta")</td>
-                        <td>@ObtenerValor(tabla, "meta")</td>
-                        <td>@ObtenerValor(tabla, "fkidsentido")</td>
-                        <td>@ObtenerValor(tabla, "fkidfrecuencia")</td>
-                        <td>@ObtenerValor(tabla, "fkidarticulo")</td>
-                        <td>@ObtenerValor(tabla, "fkidliteral")</td>
-                        <td>@ObtenerValor(tabla, "fkidnumeral")</td>
-                        <td>@ObtenerValor(tabla, "fkidparagrafo")</td>
-                        <td class="text-center" style="white-space: nowrap;">
-                            <div class="d-inline-flex">
-                                <button class="btn btn-primary btn-sm me-1" @onclick="() => EditarTabla(tabla)" title="Editar">
-                                    <i class="bi bi-pencil-fill"></i>
-                                </button>
-                                <button class="btn btn-danger btn-sm" @onclick="() => EliminarTabla(tabla)" title="Eliminar">
-                                    <i class="bi bi-trash-fill"></i>
-                                </button>
-                            </div>
+                        <td>@ObtenerValor(user, "email")</td>
+                        <td>
+                            @foreach(var rid in GetUserRoles(user))
+                            {
+                                <span class="badge bg-secondary me-1">@ObtenerForanea(listaRoles, rid.ToString(), "nombre")</span>
+                            }
+                        </td>
+                        <td>
+                            <button class="btn btn-primary btn-sm me-1" @onclick="() => EditUsuario(user)" disabled="@( !canEdit )">
+                                <i class="bi bi-pencil-fill"></i>
+                            </button>
+                            <button class="btn btn-danger btn-sm" @onclick="() => DeleteUsuario(user)" disabled="@( !canDelete )">
+                                <i class="bi bi-trash-fill"></i>
+                            </button>
                         </td>
                     </tr>
                 }
@@ -85,288 +109,201 @@ else
     </div>
 }
 
-@if (!string.IsNullOrEmpty(errorMensaje))
+<!-- MODAL EDICIÓN -->
+@if (showEditModal)
 {
-    <div class="alert alert-danger">
-        Error: @errorMensaje
+    <div class="overlay">
+        <div class="popup">
+            <h3>Editar Roles de Usuario</h3>
+            <div class="form-group">
+                <label>Email</label>
+                <input class="form-control" @bind="editEmail" disabled />
+            </div>
+            <div class="form-group">
+                <label>Roles</label>
+                <div>
+                    @foreach (var rol in listaRoles)
+                    {
+                        var rolId = int.Parse(ObtenerValor(rol, "id"));
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="edit_chk_@rolId"
+                                   @onchange="e => OnEditRoleChanged(rolId, e.Value)"
+                                   checked="@editFkidRols.Contains(rolId)" />
+                            <label class="form-check-label" for="edit_chk_@rolId">
+                                @ObtenerValor(rol, "nombre")
+                            </label>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="popup-actions">
+                <button class="btn btn-success" @onclick="OnSubmitEditAsync" disabled="@( !canEdit )">Guardar</button>
+                <button class="btn btn-secondary" @onclick="HideEditModal">Cancelar</button>
+            </div>
+        </div>
     </div>
 }
 
 @code {
-    private List<Dictionary<string, object>> tablas = new();
-    private bool cargando = true;
-    private string? errorMensaje;
-
     private const string PROYECTO = "proyecto";
-    private const string TABLA = "indicador";
+    private const string TABLA_USUARIO = "usuario";
+    private const string TABLA_ROL_USUARIO = "rol_usuario";
+    private const string TABLA_ROL = "rol";
+
+    private List<Dictionary<string, object>> usuarios = new();
+    private List<Dictionary<string, object>> listaRoles = new();
+    private List<int> newFkidRols = new();
+    private List<int> editFkidRols = new();
+    private string searchTerm = string.Empty;
+    private bool loading = true;
+
+    private bool canCreate, canEdit, canDelete;
+
+    private bool showCreateModal = false;
+    private string newEmail = string.Empty;
+    private string newContrasena = string.Empty;
+
+    private bool showEditModal = false;
+    private string editEmail = string.Empty;
+    private Dictionary<string, object>? selectedUser;
+
+    private string[] userRoles = Array.Empty<string>();
 
     protected override async Task OnInitializedAsync()
     {
-        await CargarTabla();
+        listaRoles = await servicioEntidad.ObtenerTodosAsync(PROYECTO, TABLA_ROL) ?? new();
+        await LoadUsuariosAsync();
+        loading = false;
     }
 
-    private async Task CargarTabla()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        cargando = true;
-        errorMensaje = null;
-        try
+        if (firstRender)
         {
-            var resultado = await servicioEntidad.ObtenerTodosAsync(PROYECTO, TABLA);
-            tablas = resultado ?? new List<Dictionary<string, object>>();
-        }
-        catch (Exception ex)
-        {
-            errorMensaje = $"Error al cargar: {ex.Message}";
-        }
-        finally
-        {
-            cargando = false;
-        }
-    }
+            userRoles = await JS.InvokeAsync<string[]>("eval", @"
+                Object.keys(sessionStorage)
+                     .filter(k => k.startsWith('rol_'))
+                     .map(k => sessionStorage.getItem(k));");
 
-    @*private string ObtenerValor(Dictionary<string, object> dic, string clave)
-    {
-        
-        return dic != null && dic.TryGetValue(clave, out var val) ? val?.ToString() ?? string.Empty : string.Empty;
-    }*@
-    private string ObtenerValor(Dictionary<string, object> dic, string clave)
-    {
-        if (dic != null && dic.TryGetValue(clave, out var val))
-        {
-            if (val == null)
-                return string.Empty;
+            canCreate = userRoles.Contains("admin");
+            canEdit = userRoles.Contains("admin");
+            canDelete = userRoles.Contains("admin");
 
-            // Si es numérico y es 0, devolver cadena vacía
-            if (val is int intVal && intVal == 0)
-                return string.Empty;
-
-            if (val is long longVal && longVal == 0)
-                return string.Empty;
-
-            if (val.ToString() == "0")
-                return string.Empty;
-
-            return val.ToString() ?? string.Empty;
-        }
-
-        return string.Empty;
-    }
-
-
-    private void CrearTabla()
-    {
-        navegacionManager.NavigateTo("/tipoindicador/crear");
-    }
-
-    private void EditarTabla(Dictionary<string, object> tabla)
-    {
-        var id = ObtenerValor(tabla, "id");
-        navegacionManager.NavigateTo($"/tipoindicador/editar/{id}");
-    }
-
-    private void EliminarTabla(Dictionary<string, object> tabla)
-    {
-        var id = ObtenerValor(tabla, "id");
-        // Lógica real de eliminación, si aplica:
-        //await servicioEntidad.EliminarAsync(PROYECTO, TABLA, id);
-        tablas.Remove(tabla);
-    }
-}
-
-
-
-
-
-@page "/indicador"
-@using System.Collections.Generic  
-@using System.Text.Json  
-@using System.Threading.Tasks
-@using Services  
-@inject ServicioEntidad servicioEntidad  
-@inject NavigationManager navegacionManager  
-
-<PageTitle>Lista de Tipo indicador</PageTitle>
-
-<h1>indicador</h1>
-
-<!-- Botón para crear un nuevo tipo de indicador -->  
-<button class="btn btn-success mb-3" @onclick="CrearTabla">  
-    <i class="bi bi-plus-lg"></i> Crear Tipo Indicador  
-</button>
-
-@if (cargando)
-{
-    <p><em>Cargando...</em></p>  
-}
-else if (tablas == null || tablas.Count == 0)
-{
-    <p>No hay tipos disponibles.</p>  
-}
-else
-{
-    <div class="table-responsive">
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>codigo</th>
-                    <th>Nombre</th>
-                    <th>objetivo</th>
-                    <th>alcance</th>
-                    <th>formula</th>
-                    <th>tipoindicador</th>
-                    <th>unidadmedicion</th>
-                    <th>meta</th>
-                    <th>sentido</th>
-                    <th>frecuencia</th>
-                    <th>articulo</th>
-                    <th>literal</th>
-                    <th>numeral</th>
-                    <th>paragrafo</th>
-                    <th class="text-center" style="white-space: nowrap;">Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var tabla in tablas)
-                {
-                    <tr>
-                        <td>@ObtenerValor(tabla, "id")</td>
-                        <td>@ObtenerValor(tabla, "codigo")</td>
-                        <td>@ObtenerValor(tabla, "nombre")</td>
-                        <td>@ObtenerValor(tabla, "objetivo")</td>
-                        <td>@ObtenerValor(tabla, "alcance")</td>
-                        <td>@ObtenerValor(tabla, "formula")</td>
-                        <td>@ObtenerValor(tabla, "fkidtipoindicador")</td>
-                        <td>@ObtenerValor(tabla, "fkidunidadmedicion")</td>
-                        <td>@ObtenerValor(tabla, "meta")</td>
-                        <td>@ObtenerDescripcion(listaSentidos, ObtenerValor(tabla, "fkidsentido"))</td>
-                        <td>@ObtenerDescripcion(listaFrecuencias, ObtenerValor(tabla, "fkidfrecuencia"))</td>
-                        <td>@ObtenerDescripcion(listaArticulos, ObtenerValor(tabla, "fkidarticulo"))</td>
-                        <td>@ObtenerDescripcion(listaLiterales, ObtenerValor(tabla, "fkidliteral"))</td>
-                        <td>@ObtenerDescripcion(listaNumerales, ObtenerValor(tabla, "fkidnumeral"))</td>
-                        <td>@ObtenerDescripcion(listaParagrafos, ObtenerValor(tabla, "fkidparagrafo"))</td>
-                        <td class="text-center" style="white-space: nowrap;">
-                            <div class="d-inline-flex">
-                                <button class="btn btn-primary btn-sm me-1" @onclick="() => EditarTabla(tabla)" title="Editar">
-                                    <i class="bi bi-pencil-fill"></i>
-                                </button>
-                                <button class="btn btn-danger btn-sm" @onclick="() => EliminarTabla(tabla)" title="Eliminar">
-                                    <i class="bi bi-trash-fill"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-}
-
-@if (!string.IsNullOrEmpty(errorMensaje))
-{
-    <div class="alert alert-danger">
-        Error: @errorMensaje
-    </div>
-}
-
-@code {
-    private List<Dictionary<string, object>> tablas = new();
-    private bool cargando = true;
-    private string? errorMensaje;
-
-    // Listas relacionadas para claves foráneas
-    private List<Dictionary<string, object>> listaNumerales = new();
-    private List<Dictionary<string, object>> listaArticulos = new();
-    private List<Dictionary<string, object>> listaLiterales = new();
-    private List<Dictionary<string, object>> listaParagrafos = new();
-    private List<Dictionary<string, object>> listaSentidos = new();
-    private List<Dictionary<string, object>> listaFrecuencias = new();
-
-    private const string PROYECTO = "proyecto";
-    private const string TABLA = "indicador";
-
-    protected override async Task OnInitializedAsync()
-    {
-        await CargarTabla();
-        await CargarListasRelacionadas();
-    }
-
-    private async Task CargarTabla()
-    {
-        cargando = true;
-        errorMensaje = null;
-        try
-        {
-            var resultado = await servicioEntidad.ObtenerTodosAsync(PROYECTO, TABLA);
-            tablas = resultado ?? new List<Dictionary<string, object>>();
-        }
-        catch (Exception ex)
-        {
-            errorMensaje = $"Error al cargar: {ex.Message}";
-        }
-        finally
-        {
-            cargando = false;
+            StateHasChanged();
         }
     }
 
-    private async Task CargarListasRelacionadas()
+    private async Task LoadUsuariosAsync()
     {
-        listaNumerales = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "numeral") ?? new();
-        listaArticulos = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "articulo") ?? new();
-        listaLiterales = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "literal") ?? new();
-        listaParagrafos = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "paragrafo") ?? new();
-        listaSentidos = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "sentido") ?? new();
-        listaFrecuencias = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "frecuencia") ?? new();
+        var users = await servicioEntidad.ObtenerTodosAsync(PROYECTO, TABLA_USUARIO) ?? new();
+        var ru = await servicioEntidad.ObtenerTodosAsync(PROYECTO, TABLA_ROL_USUARIO) ?? new();
+        usuarios = users.Select(u => {
+            var email = ObtenerValor(u, "email");
+            u["roles"] = ru.Where(r => ObtenerValor(r, "fkemail") == email)
+                            .Select(r => int.Parse(ObtenerValor(r, "fkidrol")))
+                            .ToList();
+            return u;
+        }).ToList();
+    }
+
+    private IEnumerable<int> GetUserRoles(Dictionary<string, object> user)
+        => user.TryGetValue("roles", out var v) && v is List<int> list ? list : Enumerable.Empty<int>();
+
+    private void BuscarUsuario()
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm)) return;
+        var term = searchTerm.ToLowerInvariant();
+        usuarios = usuarios.Where(u =>
+            ObtenerValor(u, "email").ToLowerInvariant().Contains(term)
+         || GetUserRoles(u).Select(rid => ObtenerForanea(listaRoles, rid.ToString(), "nombre").ToLowerInvariant())
+                           .Any(n => n.Contains(term))
+        ).ToList();
+    }
+
+    private void ShowCreateModal()
+    {
+        newEmail = newContrasena = string.Empty;
+        newFkidRols.Clear();
+        showCreateModal = true;
+    }
+    private void HideCreateModal() => showCreateModal = false;
+    private void HideEditModal() => showEditModal = false;
+
+    private void OnNewRoleChanged(int roleId, object checkedValue)
+    {
+        var isChecked = (bool)checkedValue;
+        if (isChecked) newFkidRols.Add(roleId);
+        else newFkidRols.Remove(roleId);
+    }
+    private void OnEditRoleChanged(int roleId, object checkedValue)
+    {
+        var isChecked = (bool)checkedValue;
+        if (isChecked) editFkidRols.Add(roleId);
+        else editFkidRols.Remove(roleId);
+    }
+
+    private async Task OnSubmitCreateAsync()
+    {
+        var userEntity = new Dictionary<string, object> { ["email"] = newEmail, ["contrasena"] = newContrasena };
+        var ok1 = await servicioEntidad.CrearAsync(PROYECTO, TABLA_USUARIO, userEntity);
+        foreach (var rid in newFkidRols)
+        {
+            var roleEntity = new Dictionary<string, object> { ["fkemail"] = newEmail, ["fkidrol"] = rid };
+            await servicioEntidad.CrearAsync(PROYECTO, TABLA_ROL_USUARIO, roleEntity);
+        }
+        if (ok1)
+        {
+            await LoadUsuariosAsync();
+            HideCreateModal();
+        }
+    }
+
+    private void EditUsuario(Dictionary<string, object> user)
+    {
+        selectedUser = user;
+        editEmail = ObtenerValor(user, "email");
+        editFkidRols = GetUserRoles(user).ToList();
+        showEditModal = true;
+    }
+
+    private async Task OnSubmitEditAsync()
+    {
+        if (selectedUser == null) return;
+        var email = editEmail;
+        // Remove all old
+        await servicioEntidad.EliminarAsync(PROYECTO, TABLA_ROL_USUARIO, "fkemail", email);
+        // Add new
+        foreach (var rid in editFkidRols)
+        {
+            var roleEntity = new Dictionary<string, object> { ["fkemail"] = email, ["fkidrol"] = rid };
+            await servicioEntidad.CrearAsync(PROYECTO, TABLA_ROL_USUARIO, roleEntity);
+        }
+        await LoadUsuariosAsync();
+        HideEditModal();
+    }
+
+    private void DeleteUsuario(Dictionary<string, object> user)
+    {
+        var email = ObtenerValor(user, "email");
+        _ = servicioEntidad.EliminarAsync(PROYECTO, TABLA_ROL_USUARIO, "fkemail", email);
+        _ = servicioEntidad.EliminarAsync(PROYECTO, TABLA_USUARIO, "email", email);
+        usuarios.Remove(user);
     }
 
     private string ObtenerValor(Dictionary<string, object> dic, string clave)
-    {
-        if (dic != null && dic.TryGetValue(clave, out var val))
-        {
-            if (val == null)
-                return string.Empty;
+        => dic.TryGetValue(clave, out var val) && val != null ? val.ToString()! : string.Empty;
 
-            if (val is int intVal && intVal == 0)
-                return string.Empty;
-
-            if (val is long longVal && longVal == 0)
-                return string.Empty;
-
-            if (val.ToString() == "0")
-                return string.Empty;
-
-            return val.ToString() ?? string.Empty;
-        }
-
-        return string.Empty;
-    }
-
-    private string ObtenerDescripcion(List<Dictionary<string, object>> lista, string id)
+    private string ObtenerForanea(List<Dictionary<string, object>> lista, string id, string campo)
     {
         if (string.IsNullOrWhiteSpace(id)) return string.Empty;
-
-        var item = lista.FirstOrDefault(x => x.TryGetValue("id", out var val) && val?.ToString() == id);
-        if (item != null && item.TryGetValue("descripcion", out var descripcion))
-            return descripcion?.ToString() ?? string.Empty;
-
-        return string.Empty;
-    }
-
-    private void CrearTabla()
-    {
-        navegacionManager.NavigateTo("/tipoindicador/crear");
-    }
-
-    private void EditarTabla(Dictionary<string, object> tabla)
-    {
-        var id = ObtenerValor(tabla, "id");
-        navegacionManager.NavigateTo($"/tipoindicador/editar/{id}");
-    }
-
-    private void EliminarTabla(Dictionary<string, object> tabla)
-    {
-        var id = ObtenerValor(tabla, "id");
-        tablas.Remove(tabla);
+        var item = lista.FirstOrDefault(x => x.TryGetValue("id", out var v) && v?.ToString() == id);
+        return item != null && item.TryGetValue(campo, out var f) ? f?.ToString() ?? string.Empty : string.Empty;
     }
 }
+
+<style>
+.overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index:1000; }
+.popup { background:#fff; padding:20px; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.3); width:400px; max-height:80vh; overflow:auto; }
+.form-group { margin-bottom:15px; }
+.popup-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:10px; }
+</style>
