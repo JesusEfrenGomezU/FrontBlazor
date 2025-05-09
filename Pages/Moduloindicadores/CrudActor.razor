@@ -5,7 +5,8 @@
 @using FrontBlazor.Services  
 @inject ServicioEntidad servicioEntidad  
 @inject NavigationManager navegacionManager
-@inject IJSRuntime JS
+@inject IJSRuntime  JS
+
 
 <PageTitle>Listado Actores</PageTitle>
 
@@ -41,6 +42,7 @@
                 <label>Nombre</label>
                 <input class="form-control" @bind="newNombre" placeholder="Nombre" />
             </div>
+
             <div class="form-group">
                 <label>Tipo</label>
                 <select class="form-select" @bind="newFkidTipoActor">
@@ -53,6 +55,7 @@
                     }
                 </select>
             </div>
+
 
             <div class="popup-actions">
                 <button class="btn btn-success" @onclick="OnSubmitCreateAsync">Guardar</button>
@@ -80,6 +83,7 @@ else
                     <th>ID</th>
                     <th>Nombre</th>
                     <th>Tipo</th>
+
                     <th>Acciones</th>
                 </tr>
             </thead>
@@ -90,6 +94,7 @@ else
                         <td>@ObtenerValor(actor, "id")</td>
                         <td>@ObtenerValor(actor, "nombre")</td>
                         <td>@ObtenerForanea(listaTipoActor, ObtenerValor(actor, "fkidtipoactor"), "nombre")</td>
+
                         <td>
                             <button class="btn btn-primary btn-sm me-1 @(canEdit ? "" : "opacity-50")"
                                 @onclick="() => { if (canEdit) EditarActor(actor); }">
@@ -115,10 +120,12 @@ else
             <h3>Editar Actor</h3>
 
             <div class="form-group">
+
                 <label>ID</label>
                 <input class="form-control" @bind="editId" disabled />
             </div>
             <div class="form-group">
+
                 <label>Nombre</label>
                 <input class="form-control" @bind="editNombre" />
             </div>
@@ -134,6 +141,7 @@ else
                     }
                 </select>
             </div>
+
 
             <div class="popup-actions">
                 <button class="btn btn-success" @onclick="OnSubmitEditAsync">Guardar</button>
@@ -155,12 +163,14 @@ else
     private bool showCreateModal = false;
     private bool showEditModal = false;
 
+
     private string newId = "";
     private string newNombre = "";
     private int newFkidTipoActor;
 
     private string editId = "";
     private string editNombre = "";
+
     private int editFkidTipoActor;
     private Dictionary<string, object>? actorOriginal;
 
@@ -170,8 +180,10 @@ else
     protected override async Task OnInitializedAsync()
     {
         listaTipoActor = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "tipoactor") ?? new();
+
         tablas          = await servicioEntidad.ObtenerTodosAsync(PROYECTO, TABLA) ?? new();
         cargando        = false;
+
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -180,11 +192,13 @@ else
         {
             userRoles = await JS.InvokeAsync<string[]>("eval", @"
                 Object.keys(sessionStorage)
+
                      .filter(k => k.startsWith('rol_'))
                      .map(k => sessionStorage.getItem(k));");
 
             canCreate = userRoles.Contains("admin");
             canEdit   = canCreate || userRoles.Contains("Validador");
+
             canDelete = canCreate;
 
             StateHasChanged();
@@ -193,6 +207,7 @@ else
 
     private void BuscarActor()
     {
+
         if (string.IsNullOrWhiteSpace(searchTerm)) return;
         var term = searchTerm.ToLowerInvariant();
         tablas = tablas
@@ -202,6 +217,7 @@ else
              || ObtenerForanea(listaTipoActor, ObtenerValor(t, "fkidtipoactor"), "nombre").ToLowerInvariant().Contains(term)
             )
             .ToList();
+
     }
 
     private void ShowCreateModal() => showCreateModal = true;
@@ -211,9 +227,11 @@ else
     {
         var entidad = new Dictionary<string, object>
         {
+
             ["id"] = newId,
             ["nombre"] = newNombre,
             ["fkidtipoactor"] = newFkidTipoActor
+
         };
 
         var ok = await servicioEntidad.CrearAsync(PROYECTO, TABLA, entidad);
@@ -226,11 +244,14 @@ else
 
     private void EditarActor(Dictionary<string, object> actor)
     {
+
         actorOriginal     = actor;
         editId            = ObtenerValor(actor, "id");
         editNombre        = ObtenerValor(actor, "nombre");
         editFkidTipoActor = int.Parse(ObtenerValor(actor, "fkidtipoactor"));
         showEditModal     = true;
+
+
     }
 
     private async Task OnSubmitEditAsync()
@@ -240,7 +261,9 @@ else
         var entidad = new Dictionary<string, object>
         {
             ["nombre"] = editNombre,
+
             ["fkidtipoactor"] = editFkidTipoActor
+
         };
 
         var ok = await servicioEntidad.ActualizarAsync(PROYECTO, TABLA, "id", editId, entidad);
@@ -261,7 +284,9 @@ else
 
     private string ObtenerValor(Dictionary<string, object> dic, string clave)
     {
+
         if (dic.TryGetValue(clave, out var val) && val != null)
+
             return val.ToString()!;
         return string.Empty;
     }

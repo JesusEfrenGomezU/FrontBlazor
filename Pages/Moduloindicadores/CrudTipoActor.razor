@@ -5,9 +5,11 @@
 @inject IJSRuntime JS
 
 
+
 <PageTitle>Tipo de Actor</PageTitle>
 
 <h1>Tipo Actor</h1>
+
 
 <!-- BUSCADOR -->
 <div class="input-group mb-3">
@@ -61,6 +63,7 @@ else
                 <tr>
                     <th>ID</th>
                     <th>Nombre</th>
+
                 </tr>
             </thead>
             <tbody>
@@ -183,6 +186,7 @@ else
     }
 
     private void EditarTipo(Dictionary<string, object> tipo)
+
     {
         tipoOriginal = tipo;
         editId = ObtenerValor(tipo, "id");
@@ -216,6 +220,7 @@ else
 
     private string ObtenerValor(Dictionary<string, object> dic, string clave)
     {
+
         if (dic.TryGetValue(clave, out var val) && val != null && val.ToString() != "0")
             return val.ToString()!;
         return string.Empty;
