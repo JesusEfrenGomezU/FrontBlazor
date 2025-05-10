@@ -1,35 +1,99 @@
-﻿<!-- Indica que esta clase hereda de LayoutComponentBase -->
-<!-- LayoutComponentBase es la clase base para todos los componentes de diseño en Blazor -->
-<!-- Proporciona la propiedad Body para insertar el contenido de la página actual -->
-@inherits LayoutComponentBase
+﻿@inherits LayoutComponentBase
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
 
-<!-- Contenedor principal que envuelve toda la página -->
-<div class="page">
-    <!-- Panel lateral (sidebar) que contiene el menú de navegación -->
-    <div class="sidebar">
-        <!-- Componente NavMenu que define el menú de navegación principal -->
-        <!-- Este componente está definido en NavMenu.razor -->
-        <NavMenu />
-    </div>
+<div class="page flex h-screen">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <NavMenu />
+  </aside>
 
-    <!-- Área principal del contenido -->
-    <main>
-        <!-- Barra superior con padding horizontal (px-4) -->
-        <div class="top-row px-4">
-            <!-- Enlace "About" que abre la documentación oficial de ASP.NET Core en una nueva pestaña -->
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+  <!-- Contenido principal -->
+  <main class="flex-1 flex flex-col">
+    <!-- Header siempre a la derecha -->
+    <header class="w-full flex justify-end items-center px-4 py-2 bg-white shadow-sm">
+      @if (string.IsNullOrEmpty(userEmail))
+      {
+        <a href="login"
+           class="text-blue-600 hover:text-blue-800 font-medium text-sm">
+          Iniciar sesión
+        </a>
+      }
+      else
+      {
+        <div class="relative">
+          <button @onclick="ToggleMenu"
+                  class="inline-flex items-center bg-gray-100 hover:bg-gray-200 
+                         rounded px-2 py-1 text-gray-800 text-sm focus:outline-none space-x-1">
+            <span class="max-w-[120px] truncate">@userEmail</span>
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 class="flex-none h-3 w-3 text-gray-600"
+                 fill="none"
+                 viewBox="0 0 24 24"
+                 stroke="currentColor">
+              <path stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          @if (menuOpen)
+          {
+            <div class="origin-top-right absolute right-0 mt-1 w-40 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
+              <div class="py-1">
+                <button @onclick="Logout"
+                        class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                  Cerrar sesión
+                </button>
+              </div>
+            </div>
+          }
         </div>
+      }
+    </header>
 
-        <!-- Contenedor del contenido principal con padding horizontal (px-4) -->
-        <article class="content px-4">
-            <!-- @Body es una propiedad especial que renderiza el contenido de la página actual -->
-            <!-- Este es el punto donde se inserta el contenido de cada página que usa este layout -->
-            @Body
-        </article>
-    </main>
+    <!-- Donde se renderiza cada página -->
+    <article class="flex-1 overflow-auto px-4">
+      @Body
+    </article>
+  </main>
 </div>
 
-<!-- Etiqueta que define el estilo de usuario como "Normal" -->
-<!-- Esta es probablemente parte de un sistema de temas o personalización -->
-<!-- No es una característica estándar de Blazor, sino específica de este proyecto -->
-<userStyle>Normal</userStyle>
+@code {
+  private string? userEmail;
+  private bool menuOpen;
+
+  protected override async Task OnInitializedAsync()
+  {
+    // Leer la sesión la primera vez
+    await LoadSessionAsync();
+    // Escuchar cambios de ruta para refrescar la sesión sin recarga
+    Navigation.LocationChanged += OnLocationChanged;
+  }
+
+  private async void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+  {
+    await LoadSessionAsync();
+    await InvokeAsync(StateHasChanged);
+  }
+
+  private async Task LoadSessionAsync()
+  {
+    userEmail = await JS.InvokeAsync<string>("sessionStorage.getItem", "usuarioEmail");
+  }
+
+  private void ToggleMenu() => menuOpen = !menuOpen;
+
+  private async Task Logout()
+  {
+    await JS.InvokeVoidAsync("sessionStorage.removeItem", "usuarioEmail");
+    Navigation.NavigateTo("logout", forceLoad: true);
+  }
+
+  public void Dispose()
+  {
+    Navigation.LocationChanged -= OnLocationChanged;
+  }
+}
