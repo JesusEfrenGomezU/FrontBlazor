@@ -1,189 +1,216 @@
-<!-- Contenedor superior del menú de navegación -->
+@using System.Collections.Generic
+@using System.Linq
+@using System.Threading.Tasks
+@using FrontBlazor.Services
+@using Microsoft.JSInterop
+@using System.Text.Json
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Routing
+
+@implements IDisposable
+
+@inject ServicioEntidad Servicio
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<!-- Contenedor superior del menú -->
 <div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">FrontBlazor</a>
-
-        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-    </div>
+  <div class="container-fluid">
+    <a class="navbar-brand" href="/">FrontBlazor</a>
+    <button class="navbar-toggler" @onclick="ToggleNavMenu">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+  </div>
 </div>
 
-<!-- Contenedor principal del menú de navegación -->
+<!-- Contenedor principal del menú -->
 <div class="@NavMenuCssClass nav-scrollable">
-    <nav class="flex-column">
-        <!-- Opción de menú: Home -->
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
+  <nav class="flex-column">
+    <!-- Home fijo -->
+    <div class="nav-item px-3">
+      <NavLink class="nav-link" href="/" Match="NavLinkMatch.All">
+        <span class="bi bi-house-door-fill-nav-menu"></span> Home
+      </NavLink>
+    </div>
 
-        <!-- Modulo Legal -->
-        <div class="nav-item px-3">
-            <div class="nav-link accordion text-center">
-                Modulo Legal
-                <span class="arrow">▼</span>
-            </div>
-            <div class="panel">
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="seccion">Sección</NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="subseccion">Subsección</NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="articulo">Articulo</NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="paragrafo">Paragrafo</NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="literal">Literal</NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="numeral">Numeral</NavLink>
-                </div>
-            </div>
+    @if (!modulos.Any())
+    {
+      <div class="nav-item px-3">
+        <div class="nav-link text-muted">No hay módulos disponibles</div>
+      </div>
+    }
+    else
+    {
+      @foreach (var item in modulos.Select((m, idx) => new { Mod = m, Idx = idx }))
+      {
+        <div class="nav-item px-3" style="position: relative;">
+          <div class="nav-link accordion text-center @(expanded[item.Idx] ? "active" : "")"
+               @onclick="() => ToggleModulo(item.Idx)">
+            @item.Mod.Titulo <span class="arrow">▼</span>
+          </div>
+          <div class="panel @(expanded[item.Idx] ? "open" : "")">
+            @foreach (var vista in item.Mod.Vistas)
+            {
+              <div class="nav-item px-3">
+                <NavLink class="nav-link" href="@($"/{vista.Ruta}")" Match="NavLinkMatch.All">
+                  @vista.Titulo
+                </NavLink>
+              </div>
+            }
+          </div>
         </div>
-
-        <!-- Modulo de Indicadores -->
-        <div class="nav-item px-3">
-            <div class="nav-link accordion text-center">
-                Modulo de Indicadores <span class="arrow">▼</span>
-            </div>
-            <div class="panel">
-                <div class="nav-item px-3">
- 
-                    <NavLink class="nav-link" href="indicador">indicador</NavLink>
-
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="tipoindicador">Tipo indicador</NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="resultadoindicador">resultado indicador</NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="actor">actor</NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="tipoactor">Tipo actor</NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="responsablesporindicador">responsables por indicador</NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="sentido">Sentido</NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="represenvisual">Represenvisual</NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="represenvisualporindicador">represenvisual por indicador</NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="fuente">Fuente</NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="fuentesporindicador">fuentes por indicador</NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="unidadmedicion">Unidad medición</NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="variable">Variable</NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="variablesporindicador">Variable por indicador</NavLink>
-                </div>
-            </div>
-        </div>
-
-        <!-- Modulo de Usuarios -->
-        <div class="nav-item px-3">
-            <div class="nav-link accordion text-center">
-                Modulo de Usuarios <span class="arrow">▼</span>
-            </div>
-            <div class="panel">
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="rol">Rol</NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="/usuario">Usuario</NavLink>
-                </div>
-            </div>
-        </div>
-    </nav>
+      }
+    }
+  </nav>
 </div>
 
-<!-- Estilos CSS -->
 <style>
-    .accordion {
-        color: white; /* Cambiar color del texto */
-    }
+  .accordion { color: white; cursor: pointer; }
+  .accordion:hover { background-color: rgba(255,255,255,0.1); }
+  .accordion .arrow { margin-left: 8px; transition: transform 0.3s ease; }
+  .accordion.active .arrow { transform: rotate(180deg); }
 
-    .accordion:hover {
-        background-color: rgba(255, 255, 255, 0.1);
-        color: white;
-    }
-
-    .accordion .arrow {
-        color: white; /* Cambiar color de la flecha */
-    }
-
-    .panel {
-        max-height: 0;
-        overflow: hidden;
-        transition: max-height 0.5s ease;
-    }
-
-    .arrow {
-        display: inline-block;
-        margin-left: 8px;
-        transition: transform 0.3s ease;
-    }
-
-    .accordion.active .arrow {
-        transform: rotate(180deg);
-    }
+  /* Panel flotante */
+  .panel {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    overflow: hidden;
+    max-height: 0;
+    background-color: #27293d;
+    transition: max-height 0.3s ease;
+    z-index: 100;
+  }
+  .panel.open {
+    max-height: 500px; /* Asegúrate que cubra todas las vistas */
+  }
 </style>
 
-<!-- Lógica de JavaScript para la interacción -->
-<script>
-    var acc = document.getElementsByClassName("accordion");
-    var i;
-
-    for (i = 0; i < acc.length; i++) {
-        acc[i].addEventListener("click", function () {
-
-            this.classList.toggle("active");
-
-            const panel = this.nextElementSibling;
-
-            if (panel.style.maxHeight) {
-                panel.style.maxHeight = panel.scrollHeight + "px";
-                requestAnimationFrame(() => {
-                    panel.style.maxHeight = "0";
-                });
-                setTimeout(() => {
-                    panel.style.maxHeight = null;
-                }, 400);
-            } else {
-                panel.style.maxHeight = panel.scrollHeight + "px";
-            }
-        });
-    }
-</script>
-
-<!-- Bloque de código C# -->
 @code {
-    private bool collapseNavMenu = true;
+  private bool collapseNavMenu = true;
+  private List<ModuloMenu> modulos = new();
+  private List<bool> expanded = new();
 
-    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+  private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+  private void ToggleNavMenu() => collapseNavMenu = !collapseNavMenu;
+  private void ToggleModulo(int idx) => expanded[idx] = !expanded[idx];
 
-    private void ToggleNavMenu()
+  protected override async Task OnInitializedAsync()
+  {
+    // Cada vez que cambie la URL, recargamos módulos automáticamente
+    Navigation.LocationChanged += OnLocationChanged;
+    await LoadModulesAsync();
+  }
+
+  private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+  {
+    await LoadModulesAsync();
+    StateHasChanged();
+  }
+
+  private async Task LoadModulesAsync()
+  {
+    // 1) Obtener email de sessionStorage
+    var email = await JS.InvokeAsync<string>("sessionStorage.getItem", "usuarioEmail");
+    if (string.IsNullOrEmpty(email))
     {
-        collapseNavMenu = !collapseNavMenu;
+      modulos = new();
+      expanded = new();
+      return;
     }
+
+    // 2) Roles del usuario
+    var rolUsuarios = await Servicio.ObtenerTodosAsync("TuApi", "rol_usuario")
+                     ?? new();
+    var misRolIds = rolUsuarios
+      .Where(r => r["fkemail"]?.ToString()?.Equals(email, StringComparison.OrdinalIgnoreCase) == true)
+      .Select(r => r["fkidrol"]?.ToString())
+      .Where(id => !string.IsNullOrEmpty(id))
+      .ToList();
+
+    var allRoles = await Servicio.ObtenerTodosAsync("TuApi", "rol") ?? new();
+    var rolesUsuario = allRoles
+      .Where(r => misRolIds.Contains(r["id"]?.ToString()))
+      .Select(r => r["nombre"]?.ToString()!)
+      .ToList();
+
+    // 3) Rutas permitidas
+    var rutasRolData = await Servicio.ObtenerTodosAsync("TuApi", "RutaRol") ?? new();
+    var rutasPermitidas = rutasRolData
+      .Where(r => rolesUsuario.Any(ru =>
+          string.Equals(ru, r["Rol"]?.ToString(), StringComparison.OrdinalIgnoreCase)))
+      .Select(r => (r["Ruta"]?.ToString() ?? "").Trim().ToLowerInvariant())
+      .ToHashSet();
+
+    // 4) Definir menú completo
+    var todosModulos = new List<ModuloMenu>
+    {
+      new ModuloMenu {
+        Titulo = "Módulo Legal",
+        Vistas = new List<VistaMenu> {
+          new("Sección","seccion"), new("Subsección","subseccion"),
+          new("Artículo","articulo"), new("Párrafo","paragrafo"),
+          new("Literal","literal"), new("Numeral","numeral"),
+        }
+      },
+      new ModuloMenu {
+        Titulo = "Módulo de Indicadores",
+        Vistas = new List<VistaMenu> {
+          new("Indicador","indicador"), new("Tipo indicador","tipoindicador"),
+          new("Resultado indicador","resultadoindicador"), new("Actor","actor"),
+          new("Tipo actor","tipoactor"), new("Responsables por indicador","responsablesporindicador"),
+          new("Sentido","sentido"), new("Representación visual","represenvisual"),
+          new("Represenvisual por indicador","represenvisualporindicador"), new("Fuente","fuente"),
+          new("Fuentes por indicador","fuentesporindicador"), new("Unidad de medición","unidadmedicion"),
+          new("Variable","variable"), new("Variable por indicador","variablesporindicador"),
+        }
+      },
+      new ModuloMenu {
+        Titulo = "Módulo de Usuarios",
+        Vistas = new List<VistaMenu> {
+          new("Rol","rol"), new("Usuario","usuario"),
+        }
+      }
+    };
+
+    // 5) Filtrar por permisos
+    modulos = todosModulos
+      .Select(m => new ModuloMenu {
+        Titulo = m.Titulo,
+        Vistas = m.Vistas
+          .Where(v => {
+            var ruta = v.Ruta.Trim().ToLowerInvariant();
+            return rutasPermitidas.Contains(ruta)
+                || rutasPermitidas.Contains("/" + ruta);
+          })
+          .ToList()
+      })
+      .Where(m => m.Vistas.Any())
+      .ToList();
+
+    // 6) Resetear estado de expandidos
+    expanded = Enumerable.Repeat(false, modulos.Count).ToList();
+  }
+
+  public void Dispose()
+  {
+    Navigation.LocationChanged -= OnLocationChanged;
+  }
+
+  // Modelos
+  public class ModuloMenu
+  {
+    public string Titulo { get; set; } = "";
+    public List<VistaMenu> Vistas { get; set; } = new();
+  }
+  public class VistaMenu
+  {
+    public string Titulo { get; set; }
+    public string Ruta   { get; set; }
+    public VistaMenu(string titulo, string ruta)
+    {
+      Titulo = titulo; Ruta = ruta;
+    }
+  }
 }
