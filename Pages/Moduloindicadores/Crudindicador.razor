@@ -567,80 +567,93 @@ else
     //Metodos para mostrar el popup
     private async Task ShowRepresenModal(Dictionary<string, object> tabla)
     {
-        // extrae el id del indicador actual
+        // 1. Extraer el id del indicador
         repIndicadorId = int.Parse(ObtenerValor(tabla, "id"));
 
-        //repre visual
-        var parametros = new Dictionary<string, object> { ["fkidindicador"] = repIndicadorId };
-        var lista      = await servicioEntidad.EjecutarProcedimientoAsync(
-                            PROYECTO, TABLA,
-                            "sp_GetRepresenVisualPorIndicador",
-                            parametros
-                        );
-                        
-        // construye las opciones con checkbox
-        represenOptions = lista!
-        .Select(x => new RepresenOption {
-            Id       = int.Parse(ObtenerValor(x, "id")),
-            Nombre   = ObtenerValor(x, "nombre"),
-            Selected = bool.Parse(ObtenerValor(x, "Selected"))
-        })
-        .ToList();
+        // 2. REPRESENTACIONES VISUALES
+        // - Obtener todas las representaciones
+        var allReps = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "represenvisual");
+        // - Obtener los enlaces a este indicador
+        var repLinks = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "represenvisualporindicador");
+        var repIds = repLinks!
+            .Where(x => int.Parse(ObtenerValor(x, "fkidindicador")) == repIndicadorId)
+            .Select(x => int.Parse(ObtenerValor(x, "fkidrepresenvisual")))
+            .ToHashSet();
 
-        //responsables
-        var listaResp = await servicioEntidad.EjecutarProcedimientoAsync(
-            PROYECTO, TABLA,
-            "sp_GetResponsablesPorIndicador",
-            parametros);
-        responsableOptions = listaResp!
-            .Select(x => new ResponsableOption {
-                Id       = ObtenerValor(x, "id"),
-                Nombre   = ObtenerValor(x, "nombre"),
-                Selected = bool.Parse(ObtenerValor(x, "Selected"))
+        represenOptions = allReps!
+            .Select(x => {
+                var id = int.Parse(ObtenerValor(x, "id"));
+                return new RepresenOption {
+                    Id       = id,
+                    Nombre   = ObtenerValor(x, "nombre"),
+                    Selected = repIds.Contains(id)
+                };
             })
             .ToList();
 
-        //fuentes
-        var listaFuen = await servicioEntidad.EjecutarProcedimientoAsync(
-            PROYECTO, TABLA,
-            "sp_GetFuentesPorIndicador",
-            parametros);
-        fuenteOptions = listaFuen!
-            .Select(x => new FuenteOption {
-                Id       = int.Parse(ObtenerValor(x, "id")),
-                Nombre   = ObtenerValor(x, "nombre"),
-                Selected = bool.Parse(ObtenerValor(x, "Selected"))
+        // 3. RESPONSABLES (ACTORES)
+        var allActors = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "actor");
+        var actorLinks = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "responsablesporindicador");
+        var actorIds = actorLinks!
+            .Where(x => int.Parse(ObtenerValor(x, "fkidindicador")) == repIndicadorId)
+            .Select(x => ObtenerValor(x, "fkidresponsable"))
+            .ToHashSet();
+
+        responsableOptions = allActors!
+            .Select(x => {
+                var id = ObtenerValor(x, "id");
+                return new ResponsableOption {
+                    Id       = id,
+                    Nombre   = ObtenerValor(x, "nombre"),
+                    Selected = actorIds.Contains(id)
+                };
             })
             .ToList();
 
-        // variables por indicador
-        var listaTodasVar = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "variable");
-        var listaAsignada = await servicioEntidad.EjecutarProcedimientoAsync(
-            PROYECTO, TABLA,
-            "sp_GetVariablesPorIndicador",
-            parametros
-        ) ?? new();
-        var asignDict = listaAsignada.ToDictionary(
-            x => int.Parse(ObtenerValor(x, "fkidvariable")),
-            x => double.Parse(ObtenerValor(x, "dato") == "" ? "0" : ObtenerValor(x, "dato"))
-        );
-        variableOptions = listaTodasVar!
-        .Select(v =>
-        {
-            var vid = int.Parse(ObtenerValor(v, "id"));
-            return new VariableOption
-            {
-                Fkidvariable = vid,
-                Nombre       = ObtenerValor(v, "nombre"),
-                Selected     = asignDict.ContainsKey(vid),
-                Dato         = asignDict.ContainsKey(vid)
-                                ? asignDict[vid]
-                                : 0
-            };
-        })
-        .ToList();
+        // 4. FUENTES
+        var allFuentes = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "fuente");
+        var fuenteLinks = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "fuentesporindicador");
+        var fuenteIds = fuenteLinks!
+            .Where(x => int.Parse(ObtenerValor(x, "fkidindicador")) == repIndicadorId)
+            .Select(x => int.Parse(ObtenerValor(x, "fkidfuente")))
+            .ToHashSet();
 
+        fuenteOptions = allFuentes!
+            .Select(x => {
+                var id = int.Parse(ObtenerValor(x, "id"));
+                return new FuenteOption {
+                    Id       = id,
+                    Nombre   = ObtenerValor(x, "nombre"),
+                    Selected = fuenteIds.Contains(id)
+                };
+            })
+            .ToList();
 
+        // 5. VARIABLES
+        // - Todas las variables
+        var allVars = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "variable");
+        // - Valores asignados a este indicador
+        var varLinks = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "variablesporindicador");
+        var varDict = varLinks?
+            .Where(x => int.Parse(ObtenerValor(x, "fkidindicador")) == repIndicadorId)
+            .ToDictionary(
+                x => int.Parse(ObtenerValor(x, "fkidvariable")),
+                x => double.Parse(string.IsNullOrEmpty(ObtenerValor(x, "dato")) ? "0" : ObtenerValor(x, "dato"))
+            ) ?? new Dictionary<int, double>();
+
+        variableOptions = allVars!
+            .Select(v => {
+                var vid = int.Parse(ObtenerValor(v, "id"));
+                return new VariableOption {
+                    Fkidvariable = vid,
+                    Nombre       = ObtenerValor(v, "nombre"),
+                    Selected     = varDict.ContainsKey(vid),
+                    Dato         = varDict.TryGetValue(vid, out var d) ? d : 0
+                };
+            })
+            .ToList();
+
+        // 6. Mostrar modal
         showRepModal = true;
     }
 
