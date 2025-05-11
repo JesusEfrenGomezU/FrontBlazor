@@ -11,50 +11,37 @@
 
   <!-- Contenido principal -->
   <main class="flex-1 flex flex-col">
-    <!-- Header siempre a la derecha -->
-    <header class="w-full flex justify-end items-center px-4 py-2 bg-white shadow-sm">
+    <!-- Header -->
+    <header class="top-row px-4 py-2 bg-white shadow-sm">
       @if (string.IsNullOrEmpty(userEmail))
       {
-        <a href="login"
-           class="text-blue-600 hover:text-blue-800 font-medium text-sm">
+        <a href="login" class="text-blue-600 hover:text-blue-800 font-medium text-sm">
           Iniciar sesión
         </a>
       }
       else
       {
-        <div class="relative">
-          <button @onclick="ToggleMenu"
-                  class="inline-flex items-center bg-gray-100 hover:bg-gray-200 
-                         rounded px-2 py-1 text-gray-800 text-sm focus:outline-none space-x-1">
-            <span class="max-w-[120px] truncate">@userEmail</span>
-            <svg xmlns="http://www.w3.org/2000/svg"
-                 class="flex-none h-3 w-3 text-gray-600"
-                 fill="none"
-                 viewBox="0 0 24 24"
-                 stroke="currentColor">
-              <path stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
+        <div class="user-dropdown-container">
+          <button @onclick="ToggleMenu" class="user-menu-button">
+            <span class="user-email">@userEmail</span>
+            <svg class="user-menu-icon" xmlns="http://www.w3.org/2000/svg" fill="none"
+                 viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M19 9l-7 7-7-7" />
             </svg>
           </button>
 
           @if (menuOpen)
           {
-            <div class="origin-top-right absolute right-0 mt-1 w-40 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
-              <div class="py-1">
-                <button @onclick="Logout"
-                        class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                  Cerrar sesión
-                </button>
-              </div>
+            <div class="user-menu-dropdown">
+              <button @onclick="Logout">Cerrar sesión</button>
             </div>
           }
         </div>
       }
     </header>
 
-    <!-- Donde se renderiza cada página -->
+    <!-- Contenido dinámico -->
     <article class="flex-1 overflow-auto px-4">
       @Body
     </article>
@@ -67,9 +54,7 @@
 
   protected override async Task OnInitializedAsync()
   {
-    // Leer la sesión la primera vez
     await LoadSessionAsync();
-    // Escuchar cambios de ruta para refrescar la sesión sin recarga
     Navigation.LocationChanged += OnLocationChanged;
   }
 

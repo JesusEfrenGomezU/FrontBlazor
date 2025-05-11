@@ -1,0 +1,83 @@
+<!-- Numeral -->
+@page "/numeral"
+@using System.Collections.Generic  
+@using System.Linq
+@using FrontBlazor.Services  
+@inject ServicioEntidad servicioEntidad
+@inherits ValidacionAcceso
+
+<PageTitle>Listado Numerales</PageTitle>
+
+<h1>Numerales</h1>
+
+<div class="input-group mb-3">
+    <input type="text" class="form-control" placeholder="Buscar id, descripción o literal..." @bind="searchTerm" />
+    <button class="btn btn-outline-secondary" @onclick="Buscar">
+        <i class="bi bi-search"></i>
+    </button>
+</div>
+
+@if (cargando)
+{
+    <p><em>Cargando...</em></p>
+}
+else if (tablas == null || tablas.Count == 0)
+{
+    <p>No hay numerales disponibles.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead><tr><th>ID</th><th>Descripción</th><th>Literal</th></tr></thead>
+            <tbody>
+                @foreach (var item in tablas)
+                {
+                    <tr>
+                        <td>@ObtenerValor(item, "id")</td>
+                        <td>@ObtenerValor(item, "descripcion")</td>
+                        <td>@ObtenerForanea(listaLiteral, ObtenerValor(item, "fkidliteral"), "descripcion")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private const string PROYECTO = "proyecto";
+    private const string TABLA    = "numeral";
+
+    private List<Dictionary<string, object>> tablas     = new();
+    private List<Dictionary<string, object>> listaLiteral= new();
+    private string searchTerm = string.Empty;
+    private bool cargando     = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        listaLiteral = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "literal") ?? new();
+        tablas       = await servicioEntidad.ObtenerTodosAsync(PROYECTO, TABLA)    ?? new();
+        cargando     = false;
+    }
+
+    private void Buscar()
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm)) return;
+        var term = searchTerm.ToLowerInvariant();
+        tablas = tablas.Where(t =>
+            ObtenerValor(t, "id").ToLowerInvariant().Contains(term)
+         || ObtenerValor(t, "descripcion").ToLowerInvariant().Contains(term)
+         || ObtenerForanea(listaLiteral, ObtenerValor(t, "fkidliteral"), "descripcion").ToLowerInvariant().Contains(term)
+        ).ToList();
+    }
+
+    private string ObtenerValor(Dictionary<string, object> dic, string clave) =>
+        dic.TryGetValue(clave, out var v) && v != null ? v.ToString()! : string.Empty;
+
+    private string ObtenerForanea(List<Dictionary<string, object>> lista, string id, string campo)
+    {
+        if (string.IsNullOrWhiteSpace(id)) return string.Empty;
+        var item = lista.FirstOrDefault(x => x.TryGetValue("id", out var v) && v?.ToString() == id);
+        return item != null && item.TryGetValue(campo, out var f) ? f?.ToString()! : string.Empty;
+    }
+}
