@@ -30,6 +30,15 @@
     <i class="bi bi-plus-lg"></i> Crear Indicador
 </button>
 
+<!-- BOTÓN REQUERIMIENTOS CONSULTA (2) -->
+<button class="btn btn-secondary mb-3" @onclick="ToggleMostrarResumen">
+    <i class="bi bi-card-list"></i> Mostrar Representaciones
+</button>
+
+<!-- BOTÓN REQUERIMIENTOS CONSULTA (3) -->
+<button class="btn btn-secondary mb-3" @onclick="ToggleMostrarResponsables">
+    <i class="bi bi-people-fill"></i> Mostrar Responsables
+</button>
 
 <!-- MODAL CREAR -->
 @if (showCreateModal)
@@ -181,74 +190,144 @@
 {
     <p><em>Cargando...</em></p>  
 }
-else if (tablas == null || tablas.Count == 0)
+@* MODAL PARA LA CONSULTA (3) *@
+else if (showResponsables)
 {
-    <p>No hay indicadores disponibles.</p>  
-}
-else
-{
-    <div class="table-responsive">
-        <table class="table table-striped">
+    <div class="table-responsive mb-3">
+        <table class="table table-bordered">
             <thead>
                 <tr>
                     <th>ID</th>
-                    <th>Código</th>
                     <th>Nombre</th>
+                    <th>Código</th>
                     <th>Objetivo</th>
-                    <th>Alcance</th>
                     <th>Fórmula</th>
-                    <th>Tipo</th>
-                    <th>Unidad</th>
                     <th>Meta</th>
-                    <th>Sentido</th>
-                    <th>Frecuencia</th>
-                    <th>Artículo</th>
-                    <th>Literal</th>
-                    <th>Numeral</th>
-                    <th>Parágrafo</th>
-                    <th>Acciones</th>
+                    <th>Responsables</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var tabla in tablas)
+                @foreach (var item in tablas)
                 {
                     <tr>
-                        <td>@ObtenerValor(tabla, "id")</td>
-                        <td>@ObtenerValor(tabla, "codigo")</td>
-                        <td>@ObtenerValor(tabla, "nombre")</td>
-                        <td>@ObtenerValor(tabla, "objetivo")</td>
-                        <td>@ObtenerValor(tabla, "alcance")</td>
-                        <td>@ObtenerValor(tabla, "formula")</td>
-                        <td>@ObtenerForanea(listaTipoIndicador, ObtenerValor(tabla, "fkidtipoindicador"), "nombre")</td>
-                        <td>@ObtenerForanea(listaUnidadMedicion, ObtenerValor(tabla, "fkidunidadmedicion"), "descripcion")</td>
-                        <td>@ObtenerValor(tabla, "meta")</td>
-                        <td>@ObtenerForanea(listaSentido, ObtenerValor(tabla, "fkidsentido"), "nombre")</td>
-                        <td>@ObtenerForanea(listaFrecuencia, ObtenerValor(tabla, "fkidfrecuencia"), "nombre")</td>
-                        <td>@ObtenerForanea(listaArticulo, ObtenerValor(tabla, "fkidarticulo"), "nombre")</td>
-                        <td>@ObtenerForanea(listaLiteral, ObtenerValor(tabla, "fkidliteral"), "descripcion")</td>
-                        <td>@ObtenerForanea(listaNumeral, ObtenerValor(tabla, "fkidnumeral"), "descripcion")</td>
-                        <td>@ObtenerForanea(listaParagrafo, ObtenerValor(tabla, "fkidparagrafo"), "descripcion")</td>
-                        <!-- Botones para editar, Eliminar y tablas intermedias   -->
-                        <td class="text-center" style="white-space: nowrap;">
-                            <button class="btn btn-primary btn-sm me-1 @(canEdit ? "" : "opacity-50")"
-                                    @onclick="() => { if (canEdit) EditarTabla(tabla); }">
-                                <i class="bi bi-pencil-fill"></i>
-                            </button>
-                            <button class="btn btn-danger btn-sm @(canDelete ? "" : "opacity-50")"
-                                    @onclick="() => { if (canDelete) EliminarTabla(tabla); }">
-                                <i class="bi bi-trash-fill"></i>
-                            </button>
-
-                            <button class="btn btn-info btn-sm me-1 @(canDelete ? "" : "opacity-50")"
-                                    @onclick="() => { if (canDelete) ShowRepresenModal(tabla); }">
-                                <i class="bi bi-box-arrow-in-up-right fs-6"></i>
-                            </button>
-                        </td>
+                        <td>@ObtenerValor(item, "id")</td>
+                        <td>@ObtenerValor(item, "nombre")</td>
+                        <td>@ObtenerValor(item, "codigo")</td>
+                        <td>@ObtenerValor(item, "objetivo")</td>
+                        <td>@ObtenerValor(item, "formula")</td>
+                        <td>@ObtenerValor(item, "meta")</td>
+                        <td>@ObtenerResponsables(item)</td>
                     </tr>
                 }
             </tbody>
         </table>
     </div>
+}
+else if(showResumenIndicador)
+{
+    <div class="table-responsive mb-3">
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Código</th>
+                    <th>Objetivo</th>
+                    <th>Fórmula</th>
+                    <th>Meta</th>
+                    <th>Representación</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in tablas)
+                {
+                    
+
+                    <tr>
+                        <td>@ObtenerValor(item, "id")</td>
+                        <td>@ObtenerValor(item, "nombre")</td>
+                        <td>@ObtenerValor(item, "codigo")</td>
+                        <td>@ObtenerValor(item, "objetivo")</td>
+                        <td>@ObtenerValor(item, "formula")</td>
+                        <td>@ObtenerValor(item, "meta")</td>
+                        <td>@ObtenerRepresentacionesVisuales(item)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    @if (tablas == null || tablas.Count == 0)
+    {
+        <p>No hay indicadores disponibles.</p>  
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Objetivo</th>
+                        <th>Alcance</th>
+                        <th>Fórmula</th>
+                        <th>Tipo</th>
+                        <th>Unidad</th>
+                        <th>Meta</th>
+                        <th>Sentido</th>
+                        <th>Frecuencia</th>
+                        <th>Artículo</th>
+                        <th>Literal</th>
+                        <th>Numeral</th>
+                        <th>Parágrafo</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var tabla in tablas)
+                    {
+                        <tr>
+                            <td>@ObtenerValor(tabla, "id")</td>
+                            <td>@ObtenerValor(tabla, "codigo")</td>
+                            <td>@ObtenerValor(tabla, "nombre")</td>
+                            <td>@ObtenerValor(tabla, "objetivo")</td>
+                            <td>@ObtenerValor(tabla, "alcance")</td>
+                            <td>@ObtenerValor(tabla, "formula")</td>
+                            <td>@ObtenerForanea(listaTipoIndicador, ObtenerValor(tabla, "fkidtipoindicador"), "nombre")</td>
+                            <td>@ObtenerForanea(listaUnidadMedicion, ObtenerValor(tabla, "fkidunidadmedicion"), "descripcion")</td>
+                            <td>@ObtenerValor(tabla, "meta")</td>
+                            <td>@ObtenerForanea(listaSentido, ObtenerValor(tabla, "fkidsentido"), "nombre")</td>
+                            <td>@ObtenerForanea(listaFrecuencia, ObtenerValor(tabla, "fkidfrecuencia"), "nombre")</td>
+                            <td>@ObtenerForanea(listaArticulo, ObtenerValor(tabla, "fkidarticulo"), "nombre")</td>
+                            <td>@ObtenerForanea(listaLiteral, ObtenerValor(tabla, "fkidliteral"), "descripcion")</td>
+                            <td>@ObtenerForanea(listaNumeral, ObtenerValor(tabla, "fkidnumeral"), "descripcion")</td>
+                            <td>@ObtenerForanea(listaParagrafo, ObtenerValor(tabla, "fkidparagrafo"), "descripcion")</td>
+                            <!-- Botones para editar, Eliminar y tablas intermedias   -->
+                            <td class="text-center" style="white-space: nowrap;">
+                                <button class="btn btn-primary btn-sm me-1 @(canEdit ? "" : "opacity-50")"
+                                        @onclick="() => { if (canEdit) EditarTabla(tabla); }">
+                                    <i class="bi bi-pencil-fill"></i>
+                                </button>
+                                <button class="btn btn-danger btn-sm @(canDelete ? "" : "opacity-50")"
+                                        @onclick="() => { if (canDelete) EliminarTabla(tabla); }">
+                                    <i class="bi bi-trash-fill"></i>
+                                </button>
+
+                                <button class="btn btn-info btn-sm me-1 @(canDelete ? "" : "opacity-50")"
+                                        @onclick="() => { if (canDelete) ShowRepresenModal(tabla); }">
+                                    <i class="bi bi-box-arrow-in-up-right fs-6"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
 }
 
 @if (!string.IsNullOrEmpty(errorMensaje))
@@ -259,6 +338,8 @@ else
 {
     <div class="alert alert-success">@successMensaje</div>
 }
+
+
 
 <!-- Modal popup para tablas intermedias -->
 @if (showRepModal)
@@ -472,6 +553,87 @@ else
 }
 
 @code {
+    // controla el listado de CONSULTA (2)
+    private bool showResumenIndicador = false;
+
+    // listas necesarias para representar los nombres CONSULTA (2)
+    private List<Dictionary<string, object>> listaRepresentacion    = new();
+    private List<Dictionary<string, object>> listaRepPorIndicador   = new();
+
+    // alterna el listado y oculta el anterior CONSULTA (2)
+    private void ToggleMostrarResumen()
+    {
+        showResumenIndicador = !showResumenIndicador;
+        showResponsables  = false;
+    }
+
+    //obtiene las repre visuales para mostrar en el boton de CONSULTA (2)
+    private string ObtenerRepresentacionesVisuales(Dictionary<string, object> tabla)
+    {
+        // 1) Extraer el id del indicador
+        if (!int.TryParse(ObtenerValor(tabla, "id"), out var id))
+            return string.Empty;
+
+        // 2) Filtrar los enlaces que apunten a este indicador
+        var repIds = listaRepPorIndicador
+            .Where(r => int.Parse(ObtenerValor(r, "fkidindicador")) == id)
+            .Select(r => int.Parse(ObtenerValor(r, "fkidrepresenvisual")))
+            .ToHashSet();
+
+        // 3) Recuperar los nombres de esas representaciones
+        var nombres = listaRepresentacion
+            .Where(r => repIds.Contains(int.Parse(ObtenerValor(r, "id"))))
+            .Select(r => ObtenerValor(r, "nombre"));
+
+        // 4) Unirlos en una sola cadena
+        return string.Join(", ", nombres);
+    }
+
+    // Listas para la CONSULTA (3)
+    private List<Dictionary<string, object>> listaActores = new();
+    private List<Dictionary<string, object>> listaResponsablesPorIndicador = new();
+    private List<Dictionary<string, object>> listaTipoActor = new();
+
+    // controla la visibilidad de la tabla CONSULTA (3)
+    private bool showResponsables = false;
+
+    // alterna la visibilidad al pulsar el botón DE CONSULTA (3)
+    private void ToggleMostrarResponsables()
+    {
+        showResponsables     = !showResponsables;
+        showResumenIndicador = false;
+        
+    }
+
+    //Obtiene los responsables para mostrar en CONSULTA (3)
+    private string ObtenerResponsables(Dictionary<string, object> tabla)
+    {
+        if (!int.TryParse(ObtenerValor(tabla, "id"), out var id)) 
+            return string.Empty;
+
+        // IDs de actores asignados
+        var actorIds = listaResponsablesPorIndicador
+            .Where(r => int.Parse(ObtenerValor(r, "fkidindicador")) == id)
+            .Select(r => ObtenerValor(r, "fkidresponsable"))
+            .ToHashSet();
+
+        // Construyo lista de "Nombre (Tipo)"
+        var lista = listaActores
+            .Where(a => actorIds.Contains(ObtenerValor(a, "id")))
+            .Select(a =>
+            {
+                var nombre = ObtenerValor(a, "nombre");
+                var tipoId = int.Parse(ObtenerValor(a, "fkidtipoactor"));
+                var tipo   = listaTipoActor
+                            .FirstOrDefault(t => int.Parse(ObtenerValor(t, "id")) == tipoId);
+                var tipoNom = tipo is null ? "" : ObtenerValor(tipo, "nombre");
+                return $"{nombre} ({tipoNom})";
+            });
+
+        return string.Join(", ", lista);
+    }
+
+
     // permisos según roles 
     private string[] userRoles = Array.Empty<string>();
     private bool canCreate, canEdit, canDelete;
@@ -793,6 +955,11 @@ else
         listaLiteral        = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "literal") ?? new();
         listaNumeral        = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "numeral") ?? new();
         listaParagrafo      = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "paragrafo") ?? new();
+        listaRepresentacion    = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "represenvisual") ?? new();
+        listaRepPorIndicador   = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "represenvisualporindicador") ?? new();
+        listaTipoActor                = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "tipoactor") ?? new();
+        listaActores                  = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "actor") ?? new();
+        listaResponsablesPorIndicador = await servicioEntidad.ObtenerTodosAsync(PROYECTO, "responsablesporindicador")   ?? new();
     }
 
     private async Task CargarTabla()
