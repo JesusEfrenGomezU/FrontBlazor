@@ -643,6 +643,9 @@ else
     {
         showResumenIndicador = !showResumenIndicador;
         showResponsables  = false;
+        showFuentes = false;
+        showVariables = false;
+
     }
 
     //obtiene las repre visuales para mostrar en el boton de CONSULTA (2)
@@ -680,6 +683,9 @@ else
     {
         showResponsables     = !showResponsables;
         showResumenIndicador = false;
+        showFuentes = false;
+        showVariables = false;
+        
         
     }
 
@@ -740,6 +746,8 @@ private void ToggleMostrarFuentes()
 
     showFuentes = !showFuentes;
     showResumenIndicador = false;
+    showResponsables = false;
+    showVariables = false;
 }
 
     // alterna la visibilidad al pulsar el botón DE CONSULTA (4)
@@ -796,7 +804,9 @@ private void ToggleMostrarVariables()
         _ = CargarVariablesAsync();  // lanza la carga en background
 
     showVariables = !showVariables;
-    showFuentes   = false;         // o el flag que necesites resetear
+    showFuentes   = false;
+    showResumenIndicador = false;
+    showResponsables = false;         // o el flag que necesites resetear
 }
 
 
