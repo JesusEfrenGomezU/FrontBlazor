@@ -39,6 +39,16 @@
 <button class="btn btn-secondary mb-3" @onclick="ToggleMostrarResponsables">
     <i class="bi bi-people-fill"></i> Mostrar Responsables
 </button>
+<!-- BOTÓN REQUERIMIENTOS CONSULTA (4) -->
+<button class="btn btn-secondary mb-3" @onclick="ToggleMostrarFuentes">
+    <i class="bi bi-people-fill"></i> Mostrar Fuentes
+</button>
+
+<!-- BOTÓN REQUERIMIENTOS CONSULTA (4) -->
+<button class="btn btn-secondary mb-3" @onclick="ToggleMostrarVariables">
+    <i class="bi bi-people-fill"></i> Mostrar variables
+</button>
+
 
 <!-- MODAL CREAR -->
 @if (showCreateModal)
@@ -251,6 +261,74 @@ else if(showResumenIndicador)
                         <td>@ObtenerValor(item, "formula")</td>
                         <td>@ObtenerValor(item, "meta")</td>
                         <td>@ObtenerRepresentacionesVisuales(item)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else if(showFuentes)
+{
+    <div class="table-responsive mb-3">
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Código</th>
+                    <th>Objetivo</th>
+                    <th>Fórmula</th>
+                    <th>Meta</th>
+                    <th>Fuentes</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in tablas)
+                {
+                    
+
+                    <tr>
+                        <td>@ObtenerValor(item, "id")</td>
+                        <td>@ObtenerValor(item, "nombre")</td>
+                        <td>@ObtenerValor(item, "codigo")</td>
+                        <td>@ObtenerValor(item, "objetivo")</td>
+                        <td>@ObtenerValor(item, "formula")</td>
+                        <td>@ObtenerValor(item, "meta")</td>
+                        <td>@ObtenerFuentes(item)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else if(showVariables)
+{
+    <div class="table-responsive mb-3">
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Código</th>
+                    <th>Objetivo</th>
+                    <th>Fórmula</th>
+                    <th>Meta</th>
+                    <th>variables</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in tablas)
+                {
+                    
+
+                    <tr>
+                        <td>@ObtenerValor(item, "id")</td>
+                        <td>@ObtenerValor(item, "nombre")</td>
+                        <td>@ObtenerValor(item, "codigo")</td>
+                        <td>@ObtenerValor(item, "objetivo")</td>
+                        <td>@ObtenerValor(item, "formula")</td>
+                        <td>@ObtenerValor(item, "meta")</td>
+                        <td>@ObtenerVariables(item)</td>
                     </tr>
                 }
             </tbody>
@@ -632,6 +710,146 @@ else
 
         return string.Join(", ", lista);
     }
+
+   //Lista para la consulta(4)
+    private List<Dictionary<string, object>> listaFuentes= new();
+    private List<Dictionary<string, object>> listaFuentesPorIndicador = new();
+    
+    // controla la visibilidad de la tabla CONSULTA (4)
+    private bool showFuentes = false;
+// 1) Método asíncrono que trae las listas
+private async Task CargarFuentesAsync()
+{
+    listaFuentes = await servicioEntidad
+        .ObtenerTodosAsync(PROYECTO, "fuente")
+        ?? new List<Dictionary<string, object>>();
+
+    listaFuentesPorIndicador = await servicioEntidad
+        .ObtenerTodosAsync(PROYECTO, "fuentesporindicador")
+        ?? new List<Dictionary<string, object>>();
+
+    // Fuerza un re-render cuando lleguen los datos
+    StateHasChanged();
+}
+
+// 2) Toggle (sigue siendo void) que dispara la carga si vamos a mostrar
+private void ToggleMostrarFuentes()
+{
+    if (!showFuentes)
+        _ = CargarFuentesAsync();  // lanza la carga en background
+
+    showFuentes = !showFuentes;
+    showResumenIndicador = false;
+}
+
+    // alterna la visibilidad al pulsar el botón DE CONSULTA (4)
+    /*private void ToggleMostrarFuentes()
+    {
+        showFuentes   = !showFuentes;
+        showResumenIndicador = false;
+    }*/
+    //obtiene las repre visuales para mostrar en el boton de CONSULTA (4)
+    private string ObtenerFuentes(Dictionary<string, object> tabla)
+    {
+        // 1) Extraer el id del indicador
+        if (!int.TryParse(ObtenerValor(tabla, "id"), out var id))
+            return string.Empty;
+
+        // 2) Filtrar los enlaces que apunten a este indicador
+        var repIds = listaFuentesPorIndicador
+            .Where(r => int.Parse(ObtenerValor(r, "fkidindicador")) == id)
+            .Select(r => int.Parse(ObtenerValor(r, "fkidfuente")))
+            .ToHashSet();
+
+        // 3) Recuperar los nombres de esas representaciones
+        var nombre = listaFuentes
+            .Where(r => repIds.Contains(int.Parse(ObtenerValor(r, "id"))))
+            .Select(r => ObtenerValor(r, "nombre"));
+
+        // 4) Unirlos en una sola cadena
+        return string.Join(", ", nombre);
+    }
+       //Lista para la consulta(5)
+    private List<Dictionary<string, object>> listaVariables= new();
+    private List<Dictionary<string, object>> listavarPorindicador = new();
+         // controla la visibilidad de la tabla CONSULTA (5)
+    private bool showVariables = false;
+
+    private async Task CargarVariablesAsync()
+{
+    // 1) Traer todas las variables
+    listaVariables = await servicioEntidad
+        .ObtenerTodosAsync(PROYECTO, "variable")
+        ?? new List<Dictionary<string, object>>();
+
+    // 2) Traer todos los enlaces variable–indicador
+    listavarPorindicador = await servicioEntidad
+        .ObtenerTodosAsync(PROYECTO, "variablesporindicador")
+        ?? new List<Dictionary<string, object>>();
+
+    // 3) Forzar re-render
+    StateHasChanged();
+}
+private void ToggleMostrarVariables()
+{
+    if (!showVariables)
+        _ = CargarVariablesAsync();  // lanza la carga en background
+
+    showVariables = !showVariables;
+    showFuentes   = false;         // o el flag que necesites resetear
+}
+
+
+
+    // alterna la visibilidad al pulsar el botón DE CONSULTA (5)
+    /*private void ToggleMostrarVariables()
+    {
+        showVariables    = !showVariables;
+        showResumenIndicador = false;
+        
+    }*/
+
+    //Obtiene los responsables para mostrar en CONSULTA (5)
+   private string ObtenerVariables(Dictionary<string, object> tabla)
+{
+    // 1) Extraer el id del indicador
+    if (!int.TryParse(ObtenerValor(tabla, "id"), out var indicadorId))
+        return string.Empty;
+
+    // 2) Filtrar todos los registros de variablesporindicador para este indicador
+    var registros = listavarPorindicador
+        .Where(r =>
+        {
+            if (!int.TryParse(ObtenerValor(r, "fkidindicador"), out var fk))
+                return false;
+            return fk == indicadorId;
+        });
+
+    // 3) Para cada registro, construir "NombreVariable: dato (fechadato)"
+    var lista = registros
+        .Select(r =>
+        {
+            // leer campo fkidvariable, dato y fechadato
+            var vid   = int.Parse(ObtenerValor(r, "fkidvariable"));
+            var dato  = ObtenerValor(r, "dato");
+            var fecha = ObtenerValor(r, "fechadato");
+
+            // buscar el nombre en la lista de variables
+            var variable = listaVariables
+                .FirstOrDefault(v =>
+                    int.Parse(ObtenerValor(v, "id")) == vid
+                );
+
+            var nombre = variable is null
+                ? $"[#{vid}]"
+                : ObtenerValor(variable, "nombre");
+
+            return $"{nombre}: {dato} ({fecha})";
+        });
+
+    // 4) Unir todo en una sola cadena separada por comas
+    return string.Join(", ", lista);
+}
 
 
     // permisos según roles 
