@@ -30,6 +30,9 @@
     <i class="bi bi-plus-lg"></i> Crear Indicador
 </button>
 
+<button class="btn btn-secondary mb-3" @onclick="ToggleMostrarUnidades">
+  <i class="bi bi-rulers"></i> Mostrar Unidades de Medición
+</button>
 <!-- BOTÓN REQUERIMIENTOS CONSULTA (2) -->
 <button class="btn btn-secondary mb-3" @onclick="ToggleMostrarResumen">
     <i class="bi bi-card-list"></i> Mostrar Representaciones
@@ -41,12 +44,15 @@
 </button>
 <!-- BOTÓN REQUERIMIENTOS CONSULTA (4) -->
 <button class="btn btn-secondary mb-3" @onclick="ToggleMostrarFuentes">
-    <i class="bi bi-people-fill"></i> Mostrar Fuentes
+    <i class="bi bi-bookmark-fill"></i> Mostrar Fuentes
 </button>
 
 <!-- BOTÓN REQUERIMIENTOS CONSULTA (4) -->
 <button class="btn btn-secondary mb-3" @onclick="ToggleMostrarVariables">
-    <i class="bi bi-people-fill"></i> Mostrar variables
+    <i class="bi bi-sliders"></i> Mostrar variables
+</button>
+<button class="btn btn-secondary mb-3" @onclick="ToggleMostrarResultados">
+  <i class="bi bi-bar-chart-line-fill"></i> Mostrar Resultados
 </button>
 
 
@@ -201,6 +207,38 @@
     <p><em>Cargando...</em></p>  
 }
 @* MODAL PARA LA CONSULTA (3) *@
+else if (showUnidadmedicion)
+{
+  <div class="table-responsive mb-3">
+    <table class="table table-bordered">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nombre</th>
+          <th>Código</th>
+          <th>Objetivo</th>
+          <th>Fórmula</th>
+          <th>Meta</th>
+          <th>Unidad de Medición</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (var item in tablas)
+        {
+          <tr>
+            <td>@ObtenerValor(item, "id")</td>
+            <td>@ObtenerValor(item, "nombre")</td>
+            <td>@ObtenerValor(item, "codigo")</td>
+            <td>@ObtenerValor(item, "objetivo")</td>
+            <td>@ObtenerValor(item, "formula")</td>
+            <td>@ObtenerValor(item, "meta")</td>
+            <td>@ObtenerUnidadMedicion(item)</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
 else if (showResponsables)
 {
     <div class="table-responsive mb-3">
@@ -334,6 +372,38 @@ else if(showVariables)
             </tbody>
         </table>
     </div>
+}
+else if (showResultados)
+{
+  <div class="table-responsive mb-3">
+    <table class="table table-bordered">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nombre</th>
+          <th>Código</th>
+          <th>Objetivo</th>
+          <th>Fórmula</th>
+          <th>Meta</th>
+          <th>Resultados</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (var item in tablas)
+        {
+          <tr>
+            <td>@ObtenerValor(item, "id")</td>
+            <td>@ObtenerValor(item, "nombre")</td>
+            <td>@ObtenerValor(item, "codigo")</td>
+            <td>@ObtenerValor(item, "objetivo")</td>
+            <td>@ObtenerValor(item, "formula")</td>
+            <td>@ObtenerValor(item, "meta")</td>
+            <td>@ObtenerResultados(item)</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
 }
 else
 {
@@ -631,20 +701,86 @@ else
 }
 
 @code {
+
+    //Lista cruda de todos los resultados(1)
+private List<Dictionary<string, object>> listaUnidades = new();
+
+// Controla si mostramos o no la sección(1)
+private bool showUnidadmedicion = false;
+
+private async Task CargarUnidadMedicionAsync()
+{
+    listaUnidades = await servicioEntidad
+        .ObtenerTodosAsync(PROYECTO, "unidadmedicion")
+        ?? new List<Dictionary<string, object>>();
+
+    // Fuerza re-render
+    StateHasChanged();
+}
+private void ToggleMostrarUnidades()
+{
+    if (!showUnidadmedicion)
+        _ = CargarUnidadMedicionAsync();  // lanza la carga en background
+
+    showUnidadmedicion = !showUnidadmedicion;
+    showFuentes    = false;
+    showVariables  = false;
+    showResumenIndicador = false;
+    showResponsables = false;
+    showResultados = false;
+}
+// 5) Método que devuelve la descripción de la unidad
+private string ObtenerUnidadMedicion(Dictionary<string, object> tabla)
+{
+    // Leer el FK
+    if (!int.TryParse(ObtenerValor(tabla, "fkidunidadmedicion"), out var unidadId))
+        return string.Empty;
+
+    // Buscar en la lista la unidad con ese ID
+    var unidad = listaUnidades
+        .FirstOrDefault(u => int.Parse(ObtenerValor(u, "id")) == unidadId);
+
+    // Devolver la descripción (o vacío si no la encontró)
+    return unidad is null
+        ? string.Empty
+        : ObtenerValor(unidad, "descripcion");
+}
+
     // controla el listado de CONSULTA (2)
     private bool showResumenIndicador = false;
 
     // listas necesarias para representar los nombres CONSULTA (2)
     private List<Dictionary<string, object>> listaRepresentacion    = new();
     private List<Dictionary<string, object>> listaRepPorIndicador   = new();
+    
+    private async Task CargarRepresentacionesVisualesAsync()
+{
+    // 1) Traer todas las variables
+    listaRepresentacion = await servicioEntidad
+        .ObtenerTodosAsync(PROYECTO, "represenvisual")
+        ?? new List<Dictionary<string, object>>();
+
+    // 2) Traer todos los enlaces variable–indicador
+    listaRepPorIndicador = await servicioEntidad
+        .ObtenerTodosAsync(PROYECTO, "represenvisualporindicador")
+        ?? new List<Dictionary<string, object>>();
+
+    // 3) Forzar re-render
+    StateHasChanged();
+}
 
     // alterna el listado y oculta el anterior CONSULTA (2)
     private void ToggleMostrarResumen()
     {
+        if (!showResumenIndicador)
+        _ = CargarRepresentacionesVisualesAsync();  // lanza la carga en background
+
         showResumenIndicador = !showResumenIndicador;
         showResponsables  = false;
         showFuentes = false;
         showVariables = false;
+        showResultados = false;
+        showUnidadmedicion = false;
 
     }
 
@@ -677,16 +813,41 @@ else
 
     // controla la visibilidad de la tabla CONSULTA (3)
     private bool showResponsables = false;
+    private async Task CargarResponsablesAsync()
+{
+    // Traer todos los actores
+    listaActores = await servicioEntidad
+        .ObtenerTodosAsync(PROYECTO, "actor")
+        ?? new List<Dictionary<string, object>>();
+
+    // Traer todos los enlaces responsable–indicador
+    listaResponsablesPorIndicador = await servicioEntidad
+        .ObtenerTodosAsync(PROYECTO, "responsablesporindicador")
+        ?? new List<Dictionary<string, object>>();
+
+    // Traer todos los tipos de actor
+    listaTipoActor = await servicioEntidad
+        .ObtenerTodosAsync(PROYECTO, "tipoactor")
+        ?? new List<Dictionary<string, object>>();
+
+    // Forzar re-render para que Blazor pinte los datos
+    StateHasChanged();
+}
 
     // alterna la visibilidad al pulsar el botón DE CONSULTA (3)
     private void ToggleMostrarResponsables()
     {
+        // Si vamos a pasar de oculto a visible, arrancamos la carga
+    if (!showResponsables)
+        _ = CargarResponsablesAsync();  // fire-and-forget
+
         showResponsables     = !showResponsables;
         showResumenIndicador = false;
         showFuentes = false;
         showVariables = false;
-        
-        
+        showResultados = false;
+        showUnidadmedicion = false;
+  
     }
 
     //Obtiene los responsables para mostrar en CONSULTA (3)
@@ -748,6 +909,8 @@ private void ToggleMostrarFuentes()
     showResumenIndicador = false;
     showResponsables = false;
     showVariables = false;
+    showResultados = false;
+    showUnidadmedicion = false;
 }
 
     // alterna la visibilidad al pulsar el botón DE CONSULTA (4)
@@ -801,7 +964,9 @@ private void ToggleMostrarVariables()
     showVariables = !showVariables;
     showFuentes   = false;
     showResumenIndicador = false;
-    showResponsables = false;         // o el flag que necesites resetear
+    showResponsables = false;        // o el flag que necesites resetear
+    showResultados = false;
+    showUnidadmedicion = false;
 }
 
 
@@ -849,6 +1014,62 @@ private void ToggleMostrarVariables()
     // 4) Unir todo en una sola cadena separada por comas
     return string.Join(", ", lista);
 }
+
+// Lista cruda de todos los resultados(6)
+private List<Dictionary<string, object>> listaResultadosPorIndicador = new();
+
+// Controla si mostramos o no la sección(6)
+private bool showResultados = false;
+
+private async Task CargarResultadosAsync()
+{
+    listaResultadosPorIndicador = await servicioEntidad
+        .ObtenerTodosAsync(PROYECTO, "resultadoindicador")
+        ?? new List<Dictionary<string, object>>();
+
+    // Fuerza re-render
+    StateHasChanged();
+}
+private void ToggleMostrarResultados()
+{
+    if (!showResultados)
+        _ = CargarResultadosAsync();  // lanza la carga en background
+
+    showResultados = !showResultados;
+    showFuentes    = false;
+    showVariables  = false;
+    showResumenIndicador = false;
+    showResponsables = false;
+    showUnidadmedicion = false;
+}
+private string ObtenerResultados(Dictionary<string, object> tabla)
+{
+    // 1) Extraer el id del indicador
+    if (!int.TryParse(ObtenerValor(tabla, "id"), out var indicadorId))
+        return string.Empty;
+
+    // 2) Filtrar los registros de resultadoindicador
+    var registros = listaResultadosPorIndicador
+        .Where(r =>
+        {
+            if (!int.TryParse(ObtenerValor(r, "fkidindicador"), out var fk))
+                return false;
+            return fk == indicadorId;
+        });
+
+    // 3) Construir "valor (fecha)" por cada registro
+    var lista = registros
+        .Select(r =>
+        {
+            var valor = ObtenerValor(r, "resultado");
+            var fecha = ObtenerValor(r, "fechacalculo");
+            return $"{valor} ({fecha})";
+        });
+
+    // 4) Unir en una sola cadena
+    return string.Join(", ", lista);
+}
+
 
 
     // permisos según roles 
