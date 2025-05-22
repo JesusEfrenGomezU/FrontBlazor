@@ -1,0 +1,136 @@
+@page "/Consultasvariables"
+@using System.Collections.Generic  
+@using System.Net.Http.Json
+@using System.Text
+@using System.Text.Json  
+@using System.Threading.Tasks
+@using FrontBlazor.Services  
+@inject ServicioEntidad servicioEntidad  
+@inject NavigationManager navegacionManager
+@inject IJSRuntime JS
+@inherits ValidacionAcceso
+
+
+<PageTitle>Variables por Indicador</PageTitle>
+
+<h1>Variables por Indicador</h1>
+
+@if (cargando)
+{
+    <p><em>Cargando...</em></p>
+}
+else if (!string.IsNullOrEmpty(errorMensaje))
+{
+    <div class="alert alert-danger">@errorMensaje</div>
+}
+else if (tablas == null || tablas.Count == 0)
+{
+    <p>No hay indicadores disponibles.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Código</th>
+                    <th>Objetivo</th>
+                    <th>Fórmula</th>
+                    <th>Meta</th>
+                    <th>Variables</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in tablas)
+                {
+                    <tr>
+                        <td>@ObtenerValor(item, "id")</td>
+                        <td>@ObtenerValor(item, "nombre")</td>
+                        <td>@ObtenerValor(item, "codigo")</td>
+                        <td>@ObtenerValor(item, "objetivo")</td>
+                        <td>@ObtenerValor(item, "formula")</td>
+                        <td>@ObtenerValor(item, "meta")</td>
+                        <td>@ObtenerVariables(item)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<Dictionary<string, object>> tablas = new();
+    private List<Dictionary<string, object>> listaVariables = new();
+    private List<Dictionary<string, object>> listaVariablesPorIndicador = new();
+    private bool cargando = true;
+    private string? errorMensaje;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDatosAsync();
+    }
+
+    private async Task CargarDatosAsync()
+    {
+        cargando = true;
+        errorMensaje = null;
+        try
+        {
+            // Cargar indicadores
+            tablas = await servicioEntidad.ObtenerTodosAsync("proyecto", "indicador")
+                      ?? new List<Dictionary<string, object>>();
+
+            // Cargar variables y relaciones
+            listaVariables = await servicioEntidad.ObtenerTodosAsync("proyecto", "variable")
+                               ?? new List<Dictionary<string, object>>();
+
+            listaVariablesPorIndicador = await servicioEntidad.ObtenerTodosAsync("proyecto", "variablesporindicador")
+                                            ?? new List<Dictionary<string, object>>();
+        }
+        catch (Exception ex)
+        {
+            errorMensaje = $"Error al cargar datos: {ex.Message}";
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private string ObtenerValor(Dictionary<string, object> dic, string clave)
+    {
+        if (dic.TryGetValue(clave, out var val) && val != null && val.ToString() != "0")
+            return val.ToString()!;
+        return string.Empty;
+    }
+
+    private string ObtenerVariables(Dictionary<string, object> tabla)
+    {
+        if (!int.TryParse(ObtenerValor(tabla, "id"), out var indicadorId))
+            return string.Empty;
+
+        var registros = listaVariablesPorIndicador
+            .Where(r => int.Parse(ObtenerValor(r, "fkidindicador")) == indicadorId);
+
+        var lista = registros
+            .Select(r =>
+            {
+                var vid = int.Parse(ObtenerValor(r, "fkidvariable"));
+                var dato = ObtenerValor(r, "dato");
+                var fecha = ObtenerValor(r, "fechadato");
+
+                var variable = listaVariables
+                    .FirstOrDefault(v => int.Parse(ObtenerValor(v, "id")) == vid);
+
+                var nombre = variable is null
+                    ? $"[#{vid}]"
+                    : ObtenerValor(variable, "nombre");
+
+                return $"{nombre}: {dato} ({fecha})";
+            });
+
+        return string.Join(", ", lista);
+    }
+}

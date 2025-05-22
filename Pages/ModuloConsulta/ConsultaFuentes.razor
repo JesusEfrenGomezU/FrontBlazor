@@ -1,0 +1,123 @@
+@page "/Consultasfuentes"
+@using System.Collections.Generic  
+@using System.Net.Http.Json
+@using System.Text
+@using System.Text.Json  
+@using System.Threading.Tasks
+@using FrontBlazor.Services  
+@inject ServicioEntidad servicioEntidad  
+@inject NavigationManager navegacionManager
+@inject IJSRuntime JS
+@inherits ValidacionAcceso
+<PageTitle>Fuentes por Indicador</PageTitle>
+
+<h1>Fuentes por Indicador</h1>
+
+@if (cargando)
+{
+    <p><em>Cargando...</em></p>
+}
+else if (!string.IsNullOrEmpty(errorMensaje))
+{
+    <div class="alert alert-danger">@errorMensaje</div>
+}
+else if (tablas == null || tablas.Count == 0)
+{
+    <p>No hay indicadores disponibles.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Código</th>
+                    <th>Objetivo</th>
+                    <th>Fórmula</th>
+                    <th>Meta</th>
+                    <th>Fuentes</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in tablas)
+                {
+                    <tr>
+                        <td>@ObtenerValor(item, "id")</td>
+                        <td>@ObtenerValor(item, "nombre")</td>
+                        <td>@ObtenerValor(item, "codigo")</td>
+                        <td>@ObtenerValor(item, "objetivo")</td>
+                        <td>@ObtenerValor(item, "formula")</td>
+                        <td>@ObtenerValor(item, "meta")</td>
+                        <td>@ObtenerFuentes(item)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<Dictionary<string, object>> tablas = new();
+    private List<Dictionary<string, object>> listaFuentes = new();
+    private List<Dictionary<string, object>> listaFuentesPorIndicador = new();
+    private bool cargando = true;
+    private string? errorMensaje;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDatosAsync();
+    }
+
+    private async Task CargarDatosAsync()
+    {
+        cargando = true;
+        errorMensaje = null;
+        try
+        {
+            // Cargar indicadores
+            tablas = await servicioEntidad.ObtenerTodosAsync("proyecto", "indicador")
+                      ?? new List<Dictionary<string, object>>();
+
+            // Cargar fuentes y relaciones
+            listaFuentes = await servicioEntidad.ObtenerTodosAsync("proyecto", "fuente")
+                          ?? new List<Dictionary<string, object>>();
+
+            listaFuentesPorIndicador = await servicioEntidad.ObtenerTodosAsync("proyecto", "fuentesporindicador")
+                                       ?? new List<Dictionary<string, object>>();
+        }
+        catch (Exception ex)
+        {
+            errorMensaje = $"Error al cargar datos: {ex.Message}";
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private string ObtenerValor(Dictionary<string, object> dic, string clave)
+    {
+        if (dic.TryGetValue(clave, out var val) && val != null && val.ToString() != "0")
+            return val.ToString()!;
+        return string.Empty;
+    }
+
+    private string ObtenerFuentes(Dictionary<string, object> tabla)
+    {
+        if (!int.TryParse(ObtenerValor(tabla, "id"), out var id))
+            return string.Empty;
+
+        var fuenteIds = listaFuentesPorIndicador
+            .Where(r => int.Parse(ObtenerValor(r, "fkidindicador")) == id)
+            .Select(r => int.Parse(ObtenerValor(r, "fkidfuente")))
+            .ToHashSet();
+
+        var nombres = listaFuentes
+            .Where(f => fuenteIds.Contains(int.Parse(ObtenerValor(f, "id"))))
+            .Select(f => ObtenerValor(f, "nombre"));
+
+        return string.Join(", ", nombres);
+    }
+}
